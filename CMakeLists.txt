@@ -19,6 +19,12 @@ configure_file(
 )
 
 add_library(openhdo_core STATIC
+    src/core/configuration.cpp
+    src/core/control_plane.cpp
+    src/core/domain.cpp
+    src/core/logging.cpp
+    src/core/messaging.cpp
+    src/core/registry.cpp
     src/core/runtime.cpp
 )
 
@@ -57,9 +63,10 @@ openhdo_add_executable(openhdo-server src/server/main.cpp)
 openhdo_add_executable(ohdocli src/cli/main.cpp)
 
 if(OPENHDO_BUILD_TESTS)
-    add_executable(openhdo-smoke tests/smoke.cpp)
-    target_link_libraries(openhdo-smoke PRIVATE openhdo_core)
+    openhdo_add_executable(openhdo-smoke tests/smoke.cpp)
+    openhdo_add_executable(openhdo-core-tests tests/core.cpp)
     add_test(NAME openhdo-smoke COMMAND openhdo-smoke)
+    add_test(NAME openhdo-core-tests COMMAND openhdo-core-tests)
 endif()
 
 install(

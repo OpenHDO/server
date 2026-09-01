@@ -79,10 +79,19 @@ dependency buys a concrete security, portability, or correctness guarantee.
 
 ## Current and next milestones
 
-Implemented: C++ runtime/CLI foundation, protocol v1 schemas, panel shell,
-Python reference SDK, CMake quality gates, and CI.
+Implemented: C++ runtime/CLI foundation, versioned configuration loader,
+structured JSON-line logging, validated in-memory device registry, typed
+command/event path, protocol v1 schemas, panel shell, Python reference SDK,
+CMake quality gates, and CI.
 
-Next server milestones: a real configuration model, structured logging,
-in-memory registry, HTTP API, WebSocket events, SQLite persistence, and a
-small authentication baseline. These should be implemented behind the public
-contracts rather than leaking internal classes or storage tables.
+Next server milestones: a wire adapter for the command/event path, HTTP API,
+WebSocket events, SQLite persistence, and a small authentication baseline.
+The current local path is intentionally transport- and persistence-free; these
+should be added behind the public contracts rather than leaking internal
+classes or storage tables. See
+[`docs/adr/0001-phase-one-control-plane.md`](docs/adr/0001-phase-one-control-plane.md)
+for the Phase 1 boundary choices.
+
+The initial configuration adapter reads `OPENHDO_CONFIG_VERSION`,
+`OPENHDO_INSTANCE_NAME`, and `OPENHDO_LOG_LEVEL`. All three are optional and
+use the same validated loader as future file or CLI adapters.
