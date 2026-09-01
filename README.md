@@ -1,49 +1,38 @@
-# Mosaic Home
+# OpenHDO
 
-Mosaic Home is a local-first control plane for connecting devices, computers, services, dashboards, and automations in one customizable ecosystem.
+**Open Home Device Orchestration** — self-hosted platform for connecting devices, computers, operating systems, services, dashboards, and automations in one customizable ecosystem.
 
-## Status
+## What it is
 
-Early design stage.
-
-## Direction
-
-- device and hardware SDKs;
+- one server for local Raspberry Pi or remote VPS deployment;
+- SDK for smart devices and hardware integrations;
 - customizable dashboards and control panels;
-- agents for Windows, Linux, and macOS;
-- visual flows for connecting events, conditions, and actions;
-- isolated plugins with explicit permissions;
-- local Raspberry Pi deployment or remote VPS deployment.
+- desktop and edge agents for interacting with operating systems;
+- visual relationships between events, conditions, and actions;
+- plugins with explicit permissions and versioned contracts;
+- control from computers, phones, panels, and other clients.
 
-The project is intentionally starting small: one core, one plugin contract, and one useful desktop agent before adding a larger ecosystem.
+The project is in the early design stage. The first milestone is a working C++ backend and plugin contract. A React-based dashboard and panel SDK will follow as a separate client layer.
 
-## Initial stack
-
-- C++20/23 for the core runtime, edge nodes, and desktop agents;
-- CMake for builds;
-- SQLite for the first local persistence layer;
-- HTTP/WebSocket APIs with JSON Schema contracts;
-- out-of-process plugins communicating through a versioned RPC contract.
-
-The first milestone is backend-only C++ runtime work. A React-based dashboard and panel SDK will be added later as a separate layer. C++ is the runtime choice, not a requirement for every extension: plugin contracts stay language-neutral so integrations can be written in other languages.
-
-## Initial architecture
-
-`mosaic-server` is the deployable server and initially runs as one C++ process with clear internal service boundaries:
+## Components
 
 ```text
-mosaic-server
-├── Mosaic Core          orchestration, commands, events, policies
-├── Registry             devices, agents, capabilities, plugins
-├── Flow Engine          conditions, triggers, actions, schedules
-├── API                  HTTP/WebSocket access for clients and agents
-├── Store                SQLite persistence and migrations
-├── Audit                structured logs and security-relevant history
-└── Plugin Host          isolated plugin processes
-
-mosaicctl               CLI client for administration and diagnostics
-mosaic-agent             separate desktop/edge process for OS and hardware access
-Mosaic Panel             future web client and dashboard SDK
+openhdo-server   central runtime and API
+openhdo-sdk      SDK for integrations and extensions
+ohdocli          CLI for administration and diagnostics
+openhdo-agent    planned desktop/edge agent
+openhdo-panel    planned web dashboard and panel SDK
 ```
 
-The first version is a modular monolith, not a distributed microservice stack. Processes are split only when isolation, permissions, crash containment, or independent updates justify it.
+The initial server is a modular monolith. Separate processes are introduced only where isolation, permissions, crash containment, or independent updates make them useful.
+
+## Technical overview
+
+- C++20/23 runtime;
+- CMake build system;
+- SQLite for the first persistence layer;
+- HTTP/WebSocket APIs;
+- JSON Schema for shared contracts;
+- out-of-process plugins with language-neutral communication.
+
+See [DOCS.md](DOCS.md) for the architecture, implementation direction, contracts, deployment model, and roadmap.
