@@ -47,8 +47,10 @@ methods and the `Authorization`, `Content-Type`, `Accept`, and
 `X-OpenHDO-Source` headers. Credentials are not allowed and `*` is rejected.
 Binding to a non-local host requires the token. Control HTTP and WebSocket
 surfaces require `Authorization: Bearer <token>` when configured.
-When the origin allowlist is configured, both WebSocket endpoints also require
-an allowed `Origin` header and close with code `4403` otherwise. With no
+When the origin allowlist is configured, `/api/v1/events` requires an allowed
+`Origin` header and closes with code `4403` if it is missing or disallowed.
+`/api/v1/linkers/{linker_id}` also rejects a present but disallowed `Origin`
+with `4403`, but permits a missing Origin for native Python Linkers. With no
 allowlist, local WebSocket behavior is unchanged.
 
 The v1 API currently includes:

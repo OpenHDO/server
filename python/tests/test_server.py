@@ -112,22 +112,28 @@ class ServerApiTests(unittest.TestCase):
             )
             self.assertEqual(client.get("/api/v1/lights").status_code, 401)
 
-    def test_configured_origin_allowlist_applies_to_both_websockets(self) -> None:
+    def test_configured_origin_allowlist_handles_browser_and_native_websockets(self) -> None:
         settings = ServerSettings(cors_origins=("http://localhost:5173",))
         with TestClient(create_app(settings)) as client:
-            for path in ("/api/v1/events", "/api/v1/linkers/linker.test"):
-                for headers in ({}, {"Origin": "http://localhost:3000"}):
-                    with self.assertRaises(WebSocketDisconnect) as error:
-                        with client.websocket_connect(path, headers=headers):
-                            pass
-                    self.assertEqual(error.exception.code, 4403)
+            for headers in ({}, {"Origin": "http://localhost:3000"}):
+                with self.assertRaises(WebSocketDisconnect) as error:
+                    with client.websocket_connect("/api/v1/events", headers=headers):
+                        pass
+                self.assertEqual(error.exception.code, 4403)
+
+            with self.assertRaises(WebSocketDisconnect) as error:
+                with client.websocket_connect(
+                    "/api/v1/linkers/linker.test", headers={"Origin": "http://localhost:3000"}
+                ):
+                    pass
+            self.assertEqual(error.exception.code, 4403)
 
             with client.websocket_connect(
                 "/api/v1/events", headers={"Origin": "http://localhost:5173"}
             ) as events:
                 events.close()
             with client.websocket_connect(
-                "/api/v1/linkers/linker.test", headers={"Origin": "http://localhost:5173"}
+                "/api/v1/linkers/linker.test"
             ) as linker:
                 linker.close()
 

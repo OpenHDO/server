@@ -59,8 +59,11 @@ def _token_matches(headers, expected: str | None) -> bool:
     return provided is not None and hmac.compare_digest(provided, expected)
 
 
-def _origin_matches(headers, allowed_origins: tuple[str, ...]) -> bool:
-    return not allowed_origins or headers.get("origin") in allowed_origins
+def _origin_matches(
+    headers, allowed_origins: tuple[str, ...], *, require_origin: bool = False
+) -> bool:
+    origin = headers.get("origin")
+    return not allowed_origins or origin in allowed_origins or (origin is None and not require_origin)
 
 
 def create_app(settings: ServerSettings | None = None) -> FastAPI:
@@ -234,7 +237,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
 
     @application.websocket("/api/v1/events")
     async def events_socket(websocket: WebSocket) -> None:
-        if not _origin_matches(websocket.headers, settings.cors_origins):
+        if not _origin_matches(websocket.headers, settings.cors_origins, require_origin=True):
             await websocket.close(code=4403, reason="origin not allowed")
             return
         if not _token_matches(websocket.headers, settings.api_token):

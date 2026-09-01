@@ -129,11 +129,13 @@ For a standalone React client on a separate origin,
 `https` origins. CORS middleware is installed only when this list is non-empty,
 with `allow_credentials=False`, methods limited to `GET`, `PATCH`, and `POST`,
 and headers limited to `Authorization`, `Content-Type`, `Accept`, and
-`X-OpenHDO-Source`; wildcard origins are rejected. The same allowlist is
-checked against the WebSocket `Origin` header for `/api/v1/events` and
-`/api/v1/linkers/{id}`. If configured, a missing or disallowed origin closes
-with WebSocket code `4403`; if unset, existing local WebSocket behavior is
-preserved. This origin check does not replace bearer authorization.
+`X-OpenHDO-Source`; wildcard origins are rejected. For `/api/v1/events`, a
+configured allowlist requires a present, allowed WebSocket `Origin`; missing
+or disallowed origins close with code `4403`. For
+`/api/v1/linkers/{id}`, a missing Origin is permitted for native Python
+Linkers, while a present Origin must be allowed and otherwise closes with
+`4403`. If unset, existing local WebSocket behavior is preserved. This origin
+check does not replace bearer authorization.
 Startup, shutdown, registration, forwarding, state, and result paths emit
 structured JSON log events without logging credentials or vendor data.
 
