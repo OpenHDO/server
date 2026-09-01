@@ -20,7 +20,7 @@ The project is in the early design stage. The first milestone is a working C++ s
 server              base server, web panel host, API, and CLI
 server-dashboard    configurable dashboard module
 server-logic        node-based logic and flow module
-server-connector    physical and location connector module
+server-connector    connectors and device management module
 sdk                 shared SDK repository, planned
 app                 additional client application repository, planned
 ```

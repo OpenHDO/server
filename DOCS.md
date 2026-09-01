@@ -37,7 +37,7 @@ HomeProtocol/
 ├── server/              base server, web panel host, API, and `ohdocli`
 ├── server-dashboard/    configurable dashboard module
 ├── server-logic/        node-based logic and flow module
-├── server-connector/    physical and location connector module
+├── server-connector/    connectors and device management module
 ├── sdk/                 shared SDK repository
 └── app/                 additional client application repository
 ```
@@ -86,7 +86,7 @@ The module should allow logic to be created and edited from the server panel, st
 
 ### `server-connector`
 
-The connector module for configuring physical and location-based access to devices. A connector represents a connection boundary such as:
+The connector module for configuring access to devices and managing the devices behind that access. A connector represents a connection boundary such as:
 
 - a room, home, office, workshop, or other location;
 - a local network or remote site;
@@ -94,7 +94,16 @@ The connector module for configuring physical and location-based access to devic
 - USB, Bluetooth, serial, TCP, or another transport;
 - the credentials and policies required to access that location.
 
-Connectors make it possible to manage devices in different places through one server. They describe how the server reaches a device group; device-specific behavior is supplied by integrations and the SDK.
+The module is responsible for:
+
+- creating and configuring connector instances;
+- discovering devices through a connector;
+- manually adding devices when discovery is unavailable;
+- assigning devices to a connector and location;
+- keeping device identity, availability, and connection state;
+- exposing device capabilities to the registry, logic module, and dashboard.
+
+Connectors make it possible to manage devices in different places through one server. Device-specific protocols and behavior are supplied by integrations and the SDK, while `server-connector` owns device onboarding and the connection lifecycle.
 
 ### `sdk` / `openhdo-sdk`
 
@@ -139,7 +148,7 @@ The first modules are:
 
 1. **Dashboard** (`server-dashboard`) — configure pages, layouts, widgets, navigation, and control views.
 2. **Logic** (`server-logic`) — create and edit node graphs that connect events, conditions, transformations, and actions between devices and services.
-3. **Connector** (`server-connector`) — configure physical and location-based connection units for homes, rooms, offices, gateways, Raspberry Pis, remote sites, and transports.
+3. **Connector** (`server-connector`) — configure physical and location-based connection units, then add or discover the devices connected through them.
 
 Modules are configured from the server panel, but their state remains part of the server's versioned configuration model. The panel is an interface for managing modules; it is not a separate orchestration engine.
 
@@ -150,7 +159,7 @@ The initial `server` repository contains these logical services. Product modules
 ```text
 server-dashboard   panel host, API, view/configuration model
 server-logic       core orchestrator, flow engine, event/command model
-server-connector   registry, plugin host, agents, transport boundaries
+server-connector   connectors, device registration, registry, plugin host, agents
 ```
 
 ### Core orchestrator
@@ -187,7 +196,7 @@ These are internal boundaries, not promises that each item will become a separat
 
 The exact schema is not finalized, but the first model is expected to revolve around:
 
-- **Device** — a physical or virtual controllable thing;
+- **Device** — a physical or virtual controllable thing registered manually or through a connector;
 - **Entity** — a concrete value or controllable endpoint exposed by a device;
 - **Capability** — a typed feature such as power, brightness, temperature, position, playback, or process control;
 - **Event** — a fact that happened in the system or an integration;
@@ -342,7 +351,7 @@ C++ is a runtime choice, not a restriction on the ecosystem. Integrations should
 - React implementation of the server web panel;
 - dashboard views and widgets;
 - visual logic editor;
-- connector and location configuration;
+- connector, location, and device onboarding;
 - `app` client applications;
 - live logs and execution inspection.
 
