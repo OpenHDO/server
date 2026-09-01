@@ -1,52 +1,66 @@
-# OpenHDO
+# OpenHDO Server
 
-**Open Home Device Orchestration** — self-hosted platform for connecting devices, computers, operating systems, services, dashboards, and automations in one customizable ecosystem.
+The OpenHDO Server is the C++20 control plane: it owns shared state,
+orchestration, the public API, authentication policy, persistence, and the
+server-side module host.
 
-## What it is
+The server is intentionally a modular monolith. Hardware access belongs in
+the separate [OpenHDO Linker](https://github.com/OpenHDO/linker) process; web
+clients and CLIs use the same public server contracts.
 
-- one central server for local Raspberry Pi or remote VPS deployment, with connector processes wherever hardware is located;
-- SDK for smart devices and hardware integrations;
-- customizable dashboards and control panels;
-- desktop and edge agents for interacting with operating systems;
-- connector processes for Wi-Fi, Bluetooth, Zigbee, USB, serial, and other transports;
-- visual relationships between events, conditions, and actions;
-- plugins with explicit permissions and versioned contracts;
-- control from computers, phones, panels, and other clients.
+## What is in this repository
 
-The project is in the early design stage. The first milestone is a working C++ server with a configurable web panel, CLI, and extension contracts. React will be used for the panel implementation when frontend work begins.
+- `openhdo-server` — central server executable;
+- `ohdocli` — administration and diagnostics CLI;
+- `openhdo_core` — small reusable C++ runtime library;
+- `contracts/v1/` — versioned language-neutral protocol contracts;
+- `web/` — React + TypeScript + Tailwind + shadcn-style panel shell;
+- `python/` — dependency-free reference SDK for protocol clients and Linkers.
 
-## Repositories
+The current release is a buildable foundation. The long-running HTTP/WebSocket
+service, SQLite store, authentication, and live Linker session are planned
+server milestones, not hidden mock implementations.
 
-```text
-server              base server, web panel host, API, and CLI
-server-dashboard    configurable dashboard module
-server-logic        node-based logic and flow module
-server-connector    server-side connector connection module
-connector           standalone device connector process
-sdk                 shared SDK repository, planned
-app                 additional client application repository, planned
+## Build from source
+
+Requirements: CMake 3.24+, a C++20 compiler, and Ninja or another supported
+generator.
+
+```bash
+cmake --preset dev
+cmake --build --preset dev
+ctest --preset dev
+build/dev/openhdo-server --check
+build/dev/ohdocli --version
 ```
 
-## Runtime tools
+On Windows without Ninja, use `dev-mingw` instead of `dev`.
 
-```text
-openhdo-server   server executable
-openhdo-sdk      SDK package and development tools
-ohdocli          CLI for administration and diagnostics
-openhdo-connector connector executable
-chdocli          connector administration CLI
-openhdo-agent    planned desktop/edge agent
+For the web panel:
+
+```bash
+cd web
+npm ci
+npm run build
+npm run dev
 ```
 
-The initial server is a modular monolith. Separate processes are introduced only where isolation, permissions, crash containment, or independent updates make them useful.
+For the Python reference SDK:
 
-## Technical overview
+```bash
+cd python
+python -m unittest discover -s tests -v
+```
 
-- C++20/23 runtime;
-- CMake build system;
-- SQLite for the first persistence layer;
-- HTTP/WebSocket APIs;
-- JSON Schema for shared contracts;
-- out-of-process plugins with language-neutral communication.
+## Engineering checks
 
-See [DOCS.md](DOCS.md) for the architecture, implementation direction, contracts, deployment model, and roadmap.
+The CI contract is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
+CMake/CTest, TypeScript/Vite, and Python unittest must stay green. Public
+messages belong under `contracts/v1/` and require an example plus a
+compatibility test.
+
+## Documentation
+
+- [Server technical docs](DOCS.md)
+- [Project overview and architecture](https://github.com/OpenHDO/about)
+- [First-run guide](https://github.com/OpenHDO/get-started)

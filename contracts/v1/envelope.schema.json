@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openhdo.org/schemas/v1/envelope.schema.json",
+  "title": "OpenHDO protocol envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "id", "type", "ts", "source", "payload"],
+  "properties": {
+    "v": {
+      "const": 1,
+      "description": "Protocol major version."
+    },
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{0,63}$"
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}

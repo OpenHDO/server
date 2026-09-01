@@ -1,0 +1,24 @@
+# CMake
+/build/
+/out/
+/cmake-build-*/
+compile_commands.json
+
+# Web
+/web/node_modules/
+/web/dist/
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Local tooling
+.DS_Store
+.idea/
+.vscode/
