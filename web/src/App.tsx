@@ -9,7 +9,6 @@ import {
   CircleCheck,
   Gauge,
   LayoutDashboard,
-  Network,
   RefreshCw,
   Search,
   Server,
@@ -180,8 +179,8 @@ export default function App() {
     <div className="min-h-screen bg-[#08111f] text-slate-100">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-800/80 bg-[#0b1627] px-4 py-5 lg:flex lg:flex-col">
         <div className="flex items-center gap-3 px-3">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-cyan-300 text-slate-950">
-            <Network size={19} strokeWidth={2.5} />
+          <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent/10 p-1.5">
+            <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-full w-full object-contain" />
           </div>
           <div>
             <p className="text-sm font-semibold tracking-wide">OpenHDO</p>
@@ -197,7 +196,7 @@ export default function App() {
               onClick={() => setActive(label)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                 active === label
-                  ? "bg-cyan-300/10 text-cyan-200"
+                  ? "bg-accent/10 text-accent-muted"
                   : "text-slate-400 hover:bg-slate-800/70 hover:text-slate-100"
               }`}
             >
@@ -207,8 +206,8 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="mt-auto rounded-xl border border-cyan-300/15 bg-cyan-300/5 p-3">
-          <div className="flex items-center gap-2 text-xs font-medium text-cyan-200">
+        <div className="mt-auto rounded-xl border border-accent/15 bg-accent/5 p-3">
+          <div className="flex items-center gap-2 text-xs font-medium text-accent-muted">
             <StatusDot tone={error ? "amber" : "emerald"} />
             {error ? "Needs attention" : "Runtime connected"}
           </div>
@@ -221,7 +220,7 @@ export default function App() {
       <main className="lg:pl-64">
         <header className="flex items-center justify-between border-b border-slate-800/80 px-5 py-5 sm:px-8">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-cyan-300/70">{active}</p>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-accent/70">{active}</p>
             <h1 className="mt-1 text-2xl font-semibold tracking-tight">Server administration</h1>
             <p className="mt-1 text-sm text-slate-500">Canonical state from this OpenHDO server.</p>
           </div>
@@ -241,7 +240,7 @@ export default function App() {
               onChange={(event) => updateAdminToken(event.target.value)}
               onBlur={() => void loadData()}
               placeholder="Required when OPENHDO_API_TOKEN is enabled"
-              className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none ring-cyan-300/50 focus:ring-2"
+              className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none ring-accent/50 focus:ring-2"
             />
           </label>
           <p className="mt-1 text-[11px] text-slate-600">Stored in this browser tab's sessionStorage; never logged or bundled.</p>
@@ -265,10 +264,10 @@ export default function App() {
             <SummaryCard icon={Activity} label="API" value={health ? `v${health.api_version}` : "—"} caption="versioned boundary" />
           </section>
 
-          <section className="rounded-2xl border border-cyan-300/20 bg-[#0d192b] p-5 sm:p-6" aria-labelledby="discovery-title">
+          <section className="rounded-2xl border border-accent/20 bg-[#0d192b] p-5 sm:p-6" aria-labelledby="discovery-title">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 text-sm font-medium"><Search size={16} className="text-cyan-300" /> <span id="discovery-title">Add device</span></div>
+                <div className="flex items-center gap-2 text-sm font-medium"><Search size={16} className="text-accent" /> <span id="discovery-title">Add device</span></div>
                 <p className="mt-1 text-xs text-slate-500">Ask a connected Linker to scan for real Wi-Fi devices.</p>
               </div>
               <DiscoveryStatus session={discoverySession} />
@@ -281,7 +280,7 @@ export default function App() {
                   onChange={(event) => setLinkerId(event.target.value)}
                   pattern="^[a-z][a-z0-9._-]{1,63}$"
                   required
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 outline-none ring-cyan-300/50 focus:ring-2"
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 outline-none ring-accent/50 focus:ring-2"
                 />
               </label>
               <label className="block text-xs text-slate-400">
@@ -292,7 +291,7 @@ export default function App() {
                   max={60}
                   value={timeoutSeconds}
                   onChange={(event) => setTimeoutSeconds(Number(event.target.value))}
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 outline-none ring-cyan-300/50 focus:ring-2"
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 outline-none ring-accent/50 focus:ring-2"
                 />
               </label>
               <Button onClick={() => void startDiscovery()} disabled={discoveryStarting || discoverySession?.status === "running"}>
@@ -306,7 +305,7 @@ export default function App() {
           <section className="rounded-2xl border border-slate-800 bg-[#0d192b] p-5 sm:p-6" aria-labelledby="lights-title">
             <div className="flex items-start justify-between">
               <div>
-                <div className="flex items-center gap-2 text-sm font-medium"><Boxes size={16} className="text-cyan-300" /> <span id="lights-title">Registered Lights</span></div>
+                <div className="flex items-center gap-2 text-sm font-medium"><Boxes size={16} className="text-accent" /> <span id="lights-title">Registered Lights</span></div>
                 <p className="mt-1 text-xs text-slate-500">Vendor-neutral state and capability reported by Linkers</p>
               </div>
               <ChevronRight size={16} className="text-slate-600" />
@@ -318,7 +317,7 @@ export default function App() {
           </section>
 
           <section className="rounded-2xl border border-slate-800 bg-[#0d192b] p-5 sm:p-6">
-            <div className="flex items-center gap-2 text-sm font-medium"><Server size={16} className="text-cyan-300" /> Server-owned admin surface</div>
+            <div className="flex items-center gap-2 text-sm font-medium"><Server size={16} className="text-accent" /> Server-owned admin surface</div>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">This panel reads the server API. Reusable client dashboards remain separate consumers of the public contracts.</p>
           </section>
         </div>
@@ -336,7 +335,7 @@ function SummaryCard({ icon: Icon, label, value, caption }: { icon: typeof Boxes
     <div className="rounded-2xl border border-slate-800 bg-[#0d192b] p-5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">{label}</p>
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-cyan-300/10 text-cyan-200"><Icon size={16} /></div>
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-accent/10 text-accent-muted"><Icon size={16} /></div>
       </div>
       <p className="mt-5 text-3xl font-semibold tracking-tight">{value}</p>
       <p className="mt-1 text-xs text-slate-500">{caption}</p>
@@ -363,7 +362,7 @@ function LightRow({ light }: { light: Light }) {
 
 function DiscoveryStatus({ session }: { session: DiscoverySession | null }) {
   if (!session) return <span className="text-xs text-slate-500">Ready to scan</span>;
-  const tone = session.status === "failed" ? "text-amber-200" : session.status === "completed" ? "text-emerald-300" : "text-cyan-200";
+  const tone = session.status === "failed" ? "text-amber-200" : session.status === "completed" ? "text-emerald-300" : "text-accent-muted";
   return <span className={`text-xs ${tone}`}>{session.status === "running" ? "Scanning…" : session.status}</span>;
 }
 
