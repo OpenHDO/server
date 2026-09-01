@@ -15,7 +15,8 @@ repository ownership, naming, deployment roles, and roadmap live in the
 - the public HTTP API and WebSocket stream when those milestones land;
 - persistence and migrations;
 - authentication, authorization, audit records, and structured logs;
-- hosting the server-side Dashboard, Logic, and Linker modules.
+- hosting the built-in admin/configuration panel and server-side Logic and
+  Linker modules.
 
 The server must not contain radio, USB, serial, or device-specific protocol
 drivers. Those run in an isolated `openhdo-linker` process close to the
@@ -30,13 +31,16 @@ src/server/          openhdo-server entry point
 src/cli/             ohdocli entry point
 tests/               CTest smoke checks
 contracts/v1/        language-neutral JSON contracts
-web/                 React/TypeScript panel shell
+web/                 built-in server admin/configuration panel shell
 python/              stdlib-only protocol SDK reference
 ```
 
-The server owns the source of truth. The panel, CLI, Linkers, agents, and
-plugins are clients or isolated extensions; none may treat dashboard state or
-SQLite tables as a public API.
+The server owns the source of truth. The built-in admin panel in `web/`, CLI,
+Linkers, agents, and plugins are clients or isolated extensions; none may
+treat dashboard state or SQLite tables as a public API. The reusable
+`server-dashboard` client module is a separate client-facing consumer of the
+server contracts. It is not the server's admin/configuration panel and is not
+owned by this repository.
 
 ## Public contract
 
@@ -61,14 +65,16 @@ timeouts, and reconnect behavior.
 
 ## Module boundaries
 
-- `server-dashboard` contributes pages, widgets, layouts, and control views.
+- `web/` is the server-owned admin/configuration panel and is developed in
+  this repository.
 - `server-logic` contributes validated flows, nodes, conditions, and actions.
 - `server-linker` contributes Linker sessions, device inventory, health, and
   command routing.
 
-These are server modules, not automatic microservices. A separate process is
-justified by isolation, permissions, crash containment, or independent update
-requirements.
+The reusable `server-dashboard` module is a client dashboard, not a server
+module. Server-side modules are not automatic microservices. A separate
+process is justified by isolation, permissions, crash containment, or
+independent update requirements.
 
 ## Development baseline
 
@@ -81,7 +87,7 @@ dependency buys a concrete security, portability, or correctness guarantee.
 
 Implemented: C++ runtime/CLI foundation, versioned configuration loader,
 structured JSON-line logging, validated in-memory device registry, typed
-command/event path, protocol v1 schemas, panel shell, Python reference SDK,
+command/event path, protocol v1 schemas, built-in admin panel shell, Python reference SDK,
 CMake quality gates, and CI.
 
 Next server milestones: a wire adapter for the command/event path, HTTP API,

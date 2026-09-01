@@ -14,7 +14,8 @@ clients and CLIs use the same public server contracts.
 - `ohdocli` — administration and diagnostics CLI;
 - `openhdo_core` — small reusable C++ runtime library;
 - `contracts/v1/` — versioned language-neutral protocol contracts;
-- `web/` — React + TypeScript + Tailwind + shadcn-style panel shell;
+- `web/` — the built-in React + TypeScript + Tailwind + shadcn-style server
+  admin/configuration panel shell;
 - `python/` — dependency-free reference SDK for protocol clients and Linkers.
 
 The current release is a buildable foundation. The long-running HTTP/WebSocket
@@ -36,7 +37,7 @@ build/dev/ohdocli --version
 
 On Windows without Ninja, use `dev-mingw` instead of `dev`.
 
-For the web panel:
+For the built-in server admin/configuration panel:
 
 ```bash
 cd web
