@@ -53,6 +53,8 @@ and the `link.register` example. The RGB Light slice is defined by
 [`contracts/v1/light-state.schema.json`](contracts/v1/light-state.schema.json),
 and the shared payload definitions in
 [`contracts/v1/light.schema.json`](contracts/v1/light.schema.json).
+Light brightness is an OpenHDO-defined integer intensity from 0 to 255; RGB
+channels use the same 0 to 255 range.
 
 Compatibility rules:
 

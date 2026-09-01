@@ -41,6 +41,8 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(state_schema["allOf"], [{"$ref": "envelope.schema.json"}])
         self.assertEqual(len(command_schema["oneOf"]), 3)
         self.assertEqual(len(state_schema["oneOf"]), 2)
+        self.assertEqual(light_schema["$defs"]["brightness"]["minimum"], 0)
+        self.assertEqual(light_schema["$defs"]["brightness"]["maximum"], 255)
         for branch in command_schema["oneOf"]:
             self.assertIn("correlation_id", branch["required"])
         self.assertIn("correlation_id", state_schema["oneOf"][1]["required"])
@@ -128,7 +130,7 @@ class ContractTests(unittest.TestCase):
     def _assert_brightness(self, value: object) -> None:
         self.assertIs(type(value), int)
         self.assertGreaterEqual(value, 0)
-        self.assertLessEqual(value, 100)
+        self.assertLessEqual(value, 255)
 
     def _assert_rgb(self, value: object) -> None:
         self.assertIsInstance(value, dict)

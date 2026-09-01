@@ -40,8 +40,10 @@ vendor-specific fields to these messages.
   `light.state.reported` snapshots and command-correlated
   `light.state.changed` events.
 - [`light.schema.json`](light.schema.json) defines the shared value shapes:
-  brightness is an integer percentage from 0 to 100, and `rgb_color` is an
-  object with `r`, `g`, and `b` integer channels from 0 to 255.
+  brightness is an integer intensity from 0 to 255, and `rgb_color` is an
+  object with `r`, `g`, and `b` integer channels from 0 to 255. This is
+  OpenHDO's own vendor-neutral contract semantics; it does not import a
+  runtime or gateway model.
 
 `correlation_id` refers to the envelope `id` of the request being correlated.
 For a command retry, the envelope `id` may change, but `command_id` and

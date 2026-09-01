@@ -7,7 +7,7 @@
   "payload": {
     "light_id": "living-room-lamp",
     "power": true,
-    "brightness": 65,
+    "brightness": 255,
     "rgb_color": {"r": 255, "g": 96, "b": 32},
     "state_revision": 41
   }

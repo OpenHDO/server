@@ -9,6 +9,6 @@
     "light_id": "living-room-lamp",
     "command_id": "00000000-0000-4000-8000-000000000106",
     "idempotency_key": "living-room-lamp-brightness-001",
-    "brightness": 65
+    "brightness": 255
   }
 }
