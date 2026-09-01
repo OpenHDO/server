@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openhdo.org/schemas/v1/light-command.schema.json",
+  "title": "OpenHDO Light v1 command envelope",
+  "description": "Version 1 Light commands carried in the existing OpenHDO envelope.",
+  "allOf": [
+    {"$ref": "envelope.schema.json"}
+  ],
+  "oneOf": [
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "light.command.power"},
+        "payload": {"$ref": "light.schema.json#/$defs/power_command"}
+      }
+    },
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "light.command.brightness"},
+        "payload": {"$ref": "light.schema.json#/$defs/brightness_command"}
+      }
+    },
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "light.command.rgb_color"},
+        "payload": {"$ref": "light.schema.json#/$defs/rgb_color_command"}
+      }
+    }
+  ]
+}

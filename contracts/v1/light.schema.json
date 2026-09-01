@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openhdo.org/schemas/v1/light.schema.json",
+  "title": "OpenHDO Light v1 payloads",
+  "description": "Canonical Light command and state payloads. These payloads are carried by the v1 envelope.",
+  "oneOf": [
+    {"$ref": "#/$defs/power_command"},
+    {"$ref": "#/$defs/brightness_command"},
+    {"$ref": "#/$defs/rgb_color_command"},
+    {"$ref": "#/$defs/reported_state"},
+    {"$ref": "#/$defs/changed_state"}
+  ],
+  "$defs": {
+    "light_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{1,63}$",
+      "description": "Stable light identity, shared with registry and Linker inventory."
+    },
+    "command_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identity of the logical command, stable across transport retries."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Opaque key reused for every retry of one logical command."
+    },
+    "brightness": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Brightness percentage. Zero is valid and does not change power state."
+    },
+    "rgb_color": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["r", "g", "b"],
+      "properties": {
+        "r": {"type": "integer", "minimum": 0, "maximum": 255},
+        "g": {"type": "integer", "minimum": 0, "maximum": 255},
+        "b": {"type": "integer", "minimum": 0, "maximum": 255}
+      }
+    },
+    "power_command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["light_id", "command_id", "idempotency_key", "power"],
+      "properties": {
+        "light_id": {"$ref": "#/$defs/light_id"},
+        "command_id": {"$ref": "#/$defs/command_id"},
+        "idempotency_key": {"$ref": "#/$defs/idempotency_key"},
+        "power": {"type": "boolean"}
+      }
+    },
+    "brightness_command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["light_id", "command_id", "idempotency_key", "brightness"],
+      "properties": {
+        "light_id": {"$ref": "#/$defs/light_id"},
+        "command_id": {"$ref": "#/$defs/command_id"},
+        "idempotency_key": {"$ref": "#/$defs/idempotency_key"},
+        "brightness": {"$ref": "#/$defs/brightness"}
+      }
+    },
+    "rgb_color_command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["light_id", "command_id", "idempotency_key", "rgb_color"],
+      "properties": {
+        "light_id": {"$ref": "#/$defs/light_id"},
+        "command_id": {"$ref": "#/$defs/command_id"},
+        "idempotency_key": {"$ref": "#/$defs/idempotency_key"},
+        "rgb_color": {"$ref": "#/$defs/rgb_color"}
+      }
+    },
+    "reported_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["light_id", "power", "brightness", "rgb_color", "state_revision"],
+      "properties": {
+        "light_id": {"$ref": "#/$defs/light_id"},
+        "power": {"type": "boolean"},
+        "brightness": {"$ref": "#/$defs/brightness"},
+        "rgb_color": {"$ref": "#/$defs/rgb_color"},
+        "state_revision": {"type": "integer", "minimum": 0}
+      }
+    },
+    "changed_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "light_id",
+        "power",
+        "brightness",
+        "rgb_color",
+        "state_revision",
+        "command_id",
+        "idempotency_key"
+      ],
+      "properties": {
+        "light_id": {"$ref": "#/$defs/light_id"},
+        "power": {"type": "boolean"},
+        "brightness": {"$ref": "#/$defs/brightness"},
+        "rgb_color": {"$ref": "#/$defs/rgb_color"},
+        "state_revision": {"type": "integer", "minimum": 0},
+        "command_id": {"$ref": "#/$defs/command_id"},
+        "idempotency_key": {"$ref": "#/$defs/idempotency_key"}
+      }
+    }
+  }
+}

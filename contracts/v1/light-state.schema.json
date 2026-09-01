@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openhdo.org/schemas/v1/light-state.schema.json",
+  "title": "OpenHDO Light v1 state envelope",
+  "description": "Version 1 Light state reports and command-correlated state change events.",
+  "allOf": [
+    {"$ref": "envelope.schema.json"}
+  ],
+  "oneOf": [
+    {
+      "required": ["type", "payload"],
+      "properties": {
+        "type": {"const": "light.state.reported"},
+        "payload": {"$ref": "light.schema.json#/$defs/reported_state"}
+      }
+    },
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "light.state.changed"},
+        "payload": {"$ref": "light.schema.json#/$defs/changed_state"}
+      }
+    }
+  ]
+}

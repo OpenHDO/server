@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "id": "00000000-0000-4000-8000-000000000111",
+  "type": "light.state.changed",
+  "ts": "2026-01-01T00:00:04Z",
+  "source": "openhdo-server",
+  "correlation_id": "00000000-0000-4000-8000-000000000107",
+  "payload": {
+    "light_id": "living-room-lamp",
+    "power": true,
+    "brightness": 65,
+    "rgb_color": {"r": 255, "g": 96, "b": 32},
+    "state_revision": 42,
+    "command_id": "00000000-0000-4000-8000-000000000109",
+    "idempotency_key": "living-room-lamp-rgb-color-001"
+  }
+}

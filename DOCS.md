@@ -48,7 +48,11 @@ The first stable contract is the versioned envelope in
 [`contracts/v1/envelope.schema.json`](contracts/v1/envelope.schema.json).
 Linker registration is represented by
 [`contracts/v1/link-manifest.schema.json`](contracts/v1/link-manifest.schema.json)
-and the `link.register` example.
+and the `link.register` example. The RGB Light slice is defined by
+[`contracts/v1/light-command.schema.json`](contracts/v1/light-command.schema.json),
+[`contracts/v1/light-state.schema.json`](contracts/v1/light-state.schema.json),
+and the shared payload definitions in
+[`contracts/v1/light.schema.json`](contracts/v1/light.schema.json).
 
 Compatibility rules:
 
@@ -87,8 +91,8 @@ dependency buys a concrete security, portability, or correctness guarantee.
 
 Implemented: C++ runtime/CLI foundation, versioned configuration loader,
 structured JSON-line logging, validated in-memory device registry, typed
-command/event path, protocol v1 schemas, built-in admin panel shell, Python reference SDK,
-CMake quality gates, and CI.
+command/event path, protocol v1 schemas, built-in admin panel shell, Python
+reference SDK, CMake quality gates, and CI.
 
 Next server milestones: a wire adapter for the command/event path, HTTP API,
 WebSocket events, SQLite persistence, and a small authentication baseline.
