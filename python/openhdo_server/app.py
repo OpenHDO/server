@@ -141,20 +141,6 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         if not _token_matches(request.headers, settings.api_token):
             raise ServiceError(401, "authorization_required", "a valid bearer token is required")
 
-    @application.middleware("http")
-    async def protect_admin(request: Request, call_next):
-        if settings.api_token and (
-            request.url.path == "/admin" or request.url.path.startswith("/admin/")
-        ) and not _token_matches(request.headers, settings.api_token):
-            return JSONResponse(
-                status_code=401,
-                content=ProblemResponse(
-                    error="authorization_required",
-                    detail="a valid bearer token is required",
-                ).model_dump(mode="json"),
-            )
-        return await call_next(request)
-
     @application.get("/api/v1/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
         return HealthResponse(
@@ -332,7 +318,9 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         except WebSocketDisconnect:
             pass
         finally:
-            await connections.detach(linker_id, websocket)
+            was_current = await connections.detach(linker_id, websocket)
+            if was_current:
+                await discovery_service.linker_disconnected(linker_id)
 
     if application.state.admin_panel_available:
         application.mount("/admin", StaticFiles(directory=str(web_dist), html=True), name="server-admin")

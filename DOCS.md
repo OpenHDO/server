@@ -97,10 +97,11 @@ the server creates a UUID session, forwards `discovery.start` over the
 connected Linker socket with `correlation_id` equal to the start envelope `id`,
 and accepts only source-matching `discovery.candidate` and
 `discovery.completed` messages for that session. The session is marked failed
-on unavailable transport, a Linker-reported failure, or timeout after 1..60
-seconds. Candidates are never synthesized; a successful scan may have an
-empty candidate list. The candidate contract is intentionally limited to
-abstract Light capability data, Wi-Fi transport, and the honest
+on unavailable transport, an active Linker disconnect, a Linker-reported
+failure, or timeout after 1..60 seconds. Candidates are never synthesized; a
+successful scan may have an empty candidate list. The candidate contract is
+intentionally limited to abstract Light capability data, Wi-Fi transport, and
+the honest
 `requires_pairing` flag.
 
 Compatibility rules:
@@ -137,7 +138,11 @@ timeouts, reconnect behavior, and an explicit delivery policy.
 Configuration is versioned (`OPENHDO_CONFIG_VERSION=1`) and loaded through the
 typed `ServerSettings` boundary. Defaults bind to `127.0.0.1:8000`; a
 non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. When configured,
-control HTTP routes, Linker WS, event WS, and `/admin` require a bearer token.
+control HTTP routes, Linker WS, and event WS require a bearer token. The
+static `/admin` shell is deliberately readable without that token so the panel
+can collect it safely; the panel stores it only in tab-scoped `sessionStorage`
+and sends it on protected API requests. The token is not logged or included in
+the build.
 For a standalone React client on a separate origin,
 `OPENHDO_CORS_ORIGINS` accepts a comma-separated allowlist of exact `http` or
 `https` origins. CORS middleware is installed only when this list is non-empty,

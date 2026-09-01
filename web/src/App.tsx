@@ -57,6 +57,31 @@ type DiscoverySession = {
   error: string | null;
 };
 
+const ADMIN_TOKEN_STORAGE_KEY = "openhdo.admin.bearer";
+
+function readAdminToken() {
+  try {
+    return window.sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function saveAdminToken(token: string) {
+  try {
+    if (token) window.sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
+    else window.sessionStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
+  } catch {
+    // The API still reports the auth error if storage is unavailable.
+  }
+}
+
+function apiFetch(path: string, token: string, init?: RequestInit) {
+  const headers = new Headers(init?.headers);
+  if (token.trim()) headers.set("Authorization", `Bearer ${token.trim()}`);
+  return fetch(path, { ...init, headers });
+}
+
 const navigation = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Lights", icon: Boxes },
@@ -64,7 +89,7 @@ const navigation = [
   { label: "Settings", icon: Settings },
 ];
 
-const DEFAULT_LINKER_ID = "linker.local";
+const DEFAULT_LINKER_ID = "openhdo.linker.rgb";
 
 export default function App() {
   const [active, setActive] = useState("Overview");
@@ -77,14 +102,20 @@ export default function App() {
   const [discoverySession, setDiscoverySession] = useState<DiscoverySession | null>(null);
   const [discoveryStarting, setDiscoveryStarting] = useState(false);
   const [discoveryError, setDiscoveryError] = useState<string | null>(null);
+  const [adminToken, setAdminToken] = useState(readAdminToken);
+
+  function updateAdminToken(token: string) {
+    setAdminToken(token);
+    saveAdminToken(token);
+  }
 
   async function loadData() {
     setLoading(true);
     setError(null);
     try {
       const [healthResponse, lightsResponse] = await Promise.all([
-        fetch("/api/v1/health"),
-        fetch("/api/v1/lights"),
+        apiFetch("/api/v1/health", adminToken),
+        apiFetch("/api/v1/lights", adminToken),
       ]);
       if (!healthResponse.ok || !lightsResponse.ok) {
         throw new Error("The server API did not authorize or return the admin data.");
@@ -109,7 +140,7 @@ export default function App() {
     let cancelled = false;
     const poll = async () => {
       try {
-        const response = await fetch(`/api/v1/discovery/sessions/${discoverySession.session_id}`);
+        const response = await apiFetch(`/api/v1/discovery/sessions/${discoverySession.session_id}`, adminToken);
         if (!response.ok) throw new Error("The discovery session could not be read.");
         const next = (await response.json()) as DiscoverySession;
         if (!cancelled) {
@@ -125,13 +156,13 @@ export default function App() {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [discoverySession?.session_id, discoverySession?.status]);
+  }, [adminToken, discoverySession?.session_id, discoverySession?.status]);
 
   async function startDiscovery() {
     setDiscoveryStarting(true);
     setDiscoveryError(null);
     try {
-      const response = await fetch("/api/v1/discovery/sessions", {
+      const response = await apiFetch("/api/v1/discovery/sessions", adminToken, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ linker_id: linkerId, timeout_s: timeoutSeconds }),
@@ -198,6 +229,23 @@ export default function App() {
             <RefreshCw size={15} /> <span className="hidden sm:inline">{loading ? "Loading" : "Refresh"}</span>
           </Button>
         </header>
+
+        <div className="border-b border-slate-800/80 bg-slate-950/20 px-5 py-3 sm:px-8">
+          <label className="block max-w-xl text-xs text-slate-400" htmlFor="admin-bearer-token">
+            Bearer token <span className="text-slate-600">(session only)</span>
+            <input
+              id="admin-bearer-token"
+              type="password"
+              autoComplete="current-password"
+              value={adminToken}
+              onChange={(event) => updateAdminToken(event.target.value)}
+              onBlur={() => void loadData()}
+              placeholder="Required when OPENHDO_API_TOKEN is enabled"
+              className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none ring-cyan-300/50 focus:ring-2"
+            />
+          </label>
+          <p className="mt-1 text-[11px] text-slate-600">Stored in this browser tab's sessionStorage; never logged or bundled.</p>
+        </div>
 
         <div className="space-y-6 px-5 py-6 sm:px-8 sm:py-8">
           {error && (

@@ -312,6 +312,21 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(timed_out["status"], "failed")
                 self.assertEqual(timed_out["error"], "discovery timed out")
 
+    def test_linker_disconnect_terminally_fails_running_discovery(self) -> None:
+        with TestClient(create_app(ServerSettings())) as client:
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                response = client.post(
+                    "/api/v1/discovery/sessions",
+                    json={"linker_id": "linker.test", "timeout_s": 60},
+                )
+                session_id = response.json()["session_id"]
+                linker.receive_json()
+
+            failed = client.get(f"/api/v1/discovery/sessions/{session_id}").json()
+            self.assertEqual(failed["status"], "failed")
+            self.assertEqual(failed["error"], "linker disconnected")
+
     def test_discovery_requires_auth_and_rejects_wrong_correlation(self) -> None:
         application = create_app(ServerSettings(api_token="long-enough-token"))
         with TestClient(application) as client:
@@ -399,12 +414,11 @@ class ServerApiTests(unittest.TestCase):
         with TestClient(application) as client:
             self.assertEqual(client.get("/api/v1/health").status_code, 200)
             self.assertEqual(client.get("/api/v1/lights").status_code, 401)
-            self.assertEqual(client.get("/admin").status_code, 401)
             self.assertEqual(
                 client.get("/api/v1/lights", headers={"Authorization": "Bearer long-enough-token"}).status_code,
                 200,
             )
-            admin = client.get("/admin", headers={"Authorization": "Bearer long-enough-token"})
+            admin = client.get("/admin")
             self.assertEqual(admin.status_code, 200 if application.state.admin_panel_available else 404)
 
 

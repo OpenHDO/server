@@ -169,6 +169,18 @@ class InMemoryDiscoverySessionRepository:
             )
             return True
 
+    def fail_running_for_linker(self, linker_id: str, error: str) -> list[UUID]:
+        with self._lock:
+            failed: list[UUID] = []
+            for session_id, (correlation_id, session) in self._sessions.items():
+                if session.linker_id == linker_id and session.status == "running":
+                    self._sessions[session_id] = (
+                        correlation_id,
+                        session.model_copy(update={"status": "failed", "error": error}),
+                    )
+                    failed.append(session_id)
+            return failed
+
     def _get(self, session_id: UUID) -> tuple[UUID, DiscoverySessionResponse]:
         stored = self._sessions.get(session_id)
         if stored is None:

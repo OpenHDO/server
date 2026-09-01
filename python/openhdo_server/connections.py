@@ -27,10 +27,12 @@ class LinkerConnections:
             except Exception:
                 pass
 
-    async def detach(self, linker_id: str, websocket: WebSocket) -> None:
+    async def detach(self, linker_id: str, websocket: WebSocket) -> bool:
         async with self._lock:
             if self._connections.get(linker_id) is websocket:
                 del self._connections[linker_id]
+                return True
+            return False
 
     async def send(self, linker_id: str, message: EnvelopeBase) -> bool:
         async with self._lock:

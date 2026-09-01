@@ -47,7 +47,10 @@ when it is unset; configured origins use explicit `GET`, `PATCH`, and `POST`
 methods and the `Authorization`, `Content-Type`, `Accept`, and
 `X-OpenHDO-Source` headers. Credentials are not allowed and `*` is rejected.
 Binding to a non-local host requires the token. Control HTTP and WebSocket
-surfaces require `Authorization: Bearer <token>` when configured.
+surfaces require `Authorization: Bearer <token>` when configured. The `/admin`
+static shell is intentionally available without the token so it can present a
+token field; its protected API requests send the bearer from tab-scoped
+`sessionStorage`, and no token is bundled or logged.
 When the origin allowlist is configured, `/api/v1/events` requires an allowed
 `Origin` header and closes with code `4403` if it is missing or disallowed.
 `/api/v1/linkers/{linker_id}` also rejects a present but disallowed `Origin`
@@ -71,8 +74,9 @@ The v1 API currently includes:
 Discovery starts are forwarded on the connected Linker WebSocket as
 `discovery.start`. The server correlates replies to that envelope's `id`, keeps
 only abstract Wi-Fi candidates and their `requires_pairing` value, and marks a
-session failed when the Linker is unavailable or the bounded `1..60` second
-timeout expires. Session state is process-local and is not durable.
+session failed when the Linker is unavailable, disconnects, or the bounded
+`1..60` second timeout expires. Session state is process-local and is not
+durable.
 
 ## Server admin panel
 
@@ -87,7 +91,9 @@ npm run build
 When `web/dist/index.html` exists, the Python runtime serves it under
 `/admin`. The build is optional; if the distribution is absent, `/admin`
 returns a clear `admin_panel_unavailable` response and the API remains usable.
-No dashboard or device data is embedded in the panel build.
+With `OPENHDO_API_TOKEN`, open the shell, enter the bearer token in the
+session-only field, and then use the protected API. No token, dashboard, or
+device data is embedded in the panel build.
 
 ## Checks
 

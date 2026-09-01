@@ -283,6 +283,7 @@ class DiscoveryService:
                 "failed",
                 "the linker is not connected or could not receive discovery.start",
             )
+            await self.linker_disconnected(request.linker_id)
             log_event(
                 self._logger,
                 logging.WARNING,
@@ -290,10 +291,11 @@ class DiscoveryService:
                 {"session_id": str(session_id), "linker_id": request.linker_id, "error": "linker_unavailable"},
             )
         else:
-            self._timeouts[session_id] = asyncio.create_task(
-                self._expire(session_id, request.timeout_s),
-                name=f"discovery-timeout-{session_id}",
-            )
+            if self.repository.get(session_id)[1].status == "running":
+                self._timeouts[session_id] = asyncio.create_task(
+                    self._expire(session_id, request.timeout_s),
+                    name=f"discovery-timeout-{session_id}",
+                )
             log_event(
                 self._logger,
                 logging.INFO,
@@ -349,6 +351,18 @@ class DiscoveryService:
             task.cancel()
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def linker_disconnected(self, linker_id: str) -> None:
+        session_ids = self.repository.fail_running_for_linker(linker_id, "linker disconnected")
+        for session_id in session_ids:
+            self._cancel_timeout(session_id)
+        if session_ids:
+            log_event(
+                self._logger,
+                logging.WARNING,
+                "discovery.linker_disconnected",
+                {"linker_id": linker_id, "session_count": len(session_ids)},
+            )
 
     async def _expire(self, session_id: UUID, timeout_s: int) -> None:
         try:
