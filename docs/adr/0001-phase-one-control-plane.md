@@ -1,6 +1,6 @@
 # ADR 0001: Phase 1 in-memory control-plane seams
 
-- Status: accepted (Python runtime supersedes the frozen C++ implementation)
+- Status: accepted (Python runtime is the active control plane)
 - Date: 2026-09-01
 
 ## Context
@@ -8,9 +8,8 @@
 The server needs a useful Phase 1 foundation before a durable transport or
 persistence layer exists. The control plane must validate its boundaries,
 expose typed domain state, and make command processing observable and testable.
-The active runtime is Python; C++ foundation code is retained only as frozen
-reference material. The server must remain independent of vendor protocols and
-real-device connections, which belong to Linkers.
+The active runtime is Python. The server must remain independent of vendor
+protocols and real-device connections, which belong to Linkers.
 
 ## Decision
 

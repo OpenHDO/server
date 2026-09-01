@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 import os
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
@@ -24,6 +25,7 @@ class ServerSettings(BaseModel):
     port: int = Field(default=8000, ge=1, le=65535)
     log_level: Literal["trace", "debug", "info", "warn", "error"] = "info"
     api_token: str | None = Field(default=None, min_length=8)
+    cors_origins: tuple[str, ...] = ()
 
     @field_validator("instance_name")
     @classmethod
@@ -40,6 +42,39 @@ class ServerSettings(BaseModel):
             return None
         return value
 
+    @field_validator("cors_origins", mode="before")
+    @classmethod
+    def normalize_cors_origins(cls, value: object) -> object:
+        if value is None or value == "":
+            return ()
+        if isinstance(value, str):
+            origins = tuple(origin.strip() for origin in value.split(","))
+            if any(not origin for origin in origins):
+                raise ValueError("cors_origins must contain comma-separated exact origins")
+            return origins
+        return value
+
+    @field_validator("cors_origins")
+    @classmethod
+    def validate_cors_origins(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        origins = tuple(dict.fromkeys(value))
+        for origin in origins:
+            parsed = urlsplit(origin)
+            try:
+                parsed.port
+            except ValueError as error:
+                raise ValueError("cors_origins must contain valid exact origins") from error
+            if (
+                "*" in origin
+                or parsed.scheme not in {"http", "https"}
+                or not parsed.hostname
+                or parsed.username is not None
+                or parsed.password is not None
+                or origin != f"{parsed.scheme}://{parsed.netloc}"
+            ):
+                raise ValueError("cors_origins must contain valid exact origins")
+        return origins
+
     @model_validator(mode="after")
     def require_token_for_non_local_host(self) -> "ServerSettings":
         if self.host not in {"127.0.0.1", "localhost", "::1"} and self.api_token is None:
@@ -54,6 +89,7 @@ _ENVIRONMENT_KEYS = {
     "OPENHDO_PORT": "port",
     "OPENHDO_LOG_LEVEL": "log_level",
     "OPENHDO_API_TOKEN": "api_token",
+    "OPENHDO_CORS_ORIGINS": "cors_origins",
 }
 
 

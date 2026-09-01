@@ -13,6 +13,7 @@ from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import TypeAdapter, ValidationError
+from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from .config import ServerSettings, load_settings
@@ -58,6 +59,10 @@ def _token_matches(headers, expected: str | None) -> bool:
     return provided is not None and hmac.compare_digest(provided, expected)
 
 
+def _origin_matches(headers, allowed_origins: tuple[str, ...]) -> bool:
+    return not allowed_origins or headers.get("origin") in allowed_origins
+
+
 def create_app(settings: ServerSettings | None = None) -> FastAPI:
     settings = settings or load_settings()
     logger = configure_logging(settings.log_level)
@@ -84,6 +89,14 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         log_event(logger, logging.INFO, "server.shutdown", {"instance_name": settings.instance_name})
 
     application = FastAPI(title="OpenHDO Server", version="0.1.0", lifespan=lifespan)
+    if settings.cors_origins:
+        application.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(settings.cors_origins),
+            allow_credentials=False,
+            allow_methods=["GET", "PATCH", "POST"],
+            allow_headers=["Authorization", "Content-Type", "Accept", "X-OpenHDO-Source"],
+        )
     application.state.settings = settings
     application.state.service = service
     application.state.connections = connections
@@ -221,6 +234,9 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
 
     @application.websocket("/api/v1/events")
     async def events_socket(websocket: WebSocket) -> None:
+        if not _origin_matches(websocket.headers, settings.cors_origins):
+            await websocket.close(code=4403, reason="origin not allowed")
+            return
         if not _token_matches(websocket.headers, settings.api_token):
             await websocket.close(code=4401, reason="authorization required")
             return
@@ -237,6 +253,9 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
 
     @application.websocket("/api/v1/linkers/{linker_id}")
     async def linker_socket(websocket: WebSocket, linker_id: Identifier) -> None:
+        if not _origin_matches(websocket.headers, settings.cors_origins):
+            await websocket.close(code=4403, reason="origin not allowed")
+            return
         if not _token_matches(websocket.headers, settings.api_token):
             await websocket.close(code=4401, reason="authorization required")
             return

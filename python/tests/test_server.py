@@ -5,6 +5,7 @@ import unittest
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from openhdo_server.app import create_app
 from openhdo_server.config import ServerSettings, SettingsError, load_settings
@@ -72,8 +73,64 @@ class ConfigurationTests(unittest.TestCase):
         settings = load_settings({"OPENHDO_HOST": "0.0.0.0", "OPENHDO_API_TOKEN": "long-enough-token"})
         self.assertEqual(settings.port, 8000)
 
+    def test_cors_origins_are_loaded_as_exact_comma_separated_origins(self) -> None:
+        settings = load_settings(
+            {"OPENHDO_CORS_ORIGINS": " http://localhost:5173,https://dashboard.example "}
+        )
+        self.assertEqual(settings.cors_origins, ("http://localhost:5173", "https://dashboard.example"))
+        with self.assertRaises(SettingsError):
+            load_settings({"OPENHDO_CORS_ORIGINS": "*"})
+
 
 class ServerApiTests(unittest.TestCase):
+    def test_configured_cors_is_explicit_and_does_not_change_bearer_auth(self) -> None:
+        settings = ServerSettings(
+            api_token="long-enough-token", cors_origins=("http://localhost:5173",)
+        )
+        with TestClient(create_app(settings)) as client:
+            preflight = client.options(
+                "/api/v1/lights",
+                headers={
+                    "Origin": "http://localhost:5173",
+                    "Access-Control-Request-Method": "PATCH",
+                    "Access-Control-Request-Headers": "authorization,content-type,accept,x-openhdo-source",
+                },
+            )
+            self.assertEqual(preflight.status_code, 200)
+            self.assertEqual(preflight.headers["access-control-allow-origin"], "http://localhost:5173")
+            self.assertEqual(preflight.headers["access-control-allow-methods"], "GET, PATCH, POST")
+            self.assertNotIn("access-control-allow-credentials", preflight.headers)
+            self.assertEqual(
+                client.get("/api/v1/health", headers={"Origin": "http://localhost:5173"}).headers[
+                    "access-control-allow-origin"
+                ],
+                "http://localhost:5173",
+            )
+            self.assertNotIn(
+                "access-control-allow-origin",
+                client.get("/api/v1/health", headers={"Origin": "http://localhost:3000"}).headers,
+            )
+            self.assertEqual(client.get("/api/v1/lights").status_code, 401)
+
+    def test_configured_origin_allowlist_applies_to_both_websockets(self) -> None:
+        settings = ServerSettings(cors_origins=("http://localhost:5173",))
+        with TestClient(create_app(settings)) as client:
+            for path in ("/api/v1/events", "/api/v1/linkers/linker.test"):
+                for headers in ({}, {"Origin": "http://localhost:3000"}):
+                    with self.assertRaises(WebSocketDisconnect) as error:
+                        with client.websocket_connect(path, headers=headers):
+                            pass
+                    self.assertEqual(error.exception.code, 4403)
+
+            with client.websocket_connect(
+                "/api/v1/events", headers={"Origin": "http://localhost:5173"}
+            ) as events:
+                events.close()
+            with client.websocket_connect(
+                "/api/v1/linkers/linker.test", headers={"Origin": "http://localhost:5173"}
+            ) as linker:
+                linker.close()
+
     def test_health_and_empty_inventory(self) -> None:
         with TestClient(create_app(ServerSettings())) as client:
             health = client.get("/api/v1/health")

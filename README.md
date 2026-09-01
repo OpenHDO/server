@@ -16,8 +16,6 @@ vendor-neutral contracts in `contracts/v1/`.
 - `python/openhdo_server/` — active FastAPI/Starlette + uvicorn runtime;
 - `contracts/v1/` — versioned language-neutral envelope and Light contracts;
 - `web/` — server-owned React admin/configuration panel source;
-- `include/`, `src/`, `tests/` — frozen C++ foundation kept as non-runtime
-  reference material during the Python migration.
 
 The current Python vertical slice provides health and Light inventory HTTP
 endpoints, abstract Light command forwarding, Linker registration/state/result
@@ -41,8 +39,17 @@ openhdo-server
 The default bind is local-only (`127.0.0.1:8000`). Supported configuration
 variables are `OPENHDO_CONFIG_VERSION`, `OPENHDO_INSTANCE_NAME`,
 `OPENHDO_HOST`, `OPENHDO_PORT`, `OPENHDO_LOG_LEVEL`, and `OPENHDO_API_TOKEN`.
+For a standalone React app on another local origin, set
+`OPENHDO_CORS_ORIGINS` to a comma-separated list of exact origins, for
+example `http://localhost:5173,https://dashboard.example`. CORS is disabled
+when it is unset; configured origins use explicit `GET`, `PATCH`, and `POST`
+methods and the `Authorization`, `Content-Type`, `Accept`, and
+`X-OpenHDO-Source` headers. Credentials are not allowed and `*` is rejected.
 Binding to a non-local host requires the token. Control HTTP and WebSocket
 surfaces require `Authorization: Bearer <token>` when configured.
+When the origin allowlist is configured, both WebSocket endpoints also require
+an allowed `Origin` header and close with code `4403` otherwise. With no
+allowlist, local WebSocket behavior is unchanged.
 
 The v1 API currently includes:
 
@@ -74,8 +81,6 @@ No dashboard or device data is embedded in the panel build.
 
 The Python package declares production dependencies and a `dev` extra. Run
 the focused suite directly with `python -m unittest discover -s tests -v`.
-The CMake presets are compatibility checks only: they compile-check Python and
-run the same unittest suite; they no longer build or install C++ executables.
 The CI contract also runs the React/TypeScript production build.
 
 Normative messages and payloads belong under `contracts/v1/`; each public

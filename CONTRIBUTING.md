@@ -5,8 +5,7 @@ and orchestration; Linkers own local hardware access; clients use public
 contracts instead of internal Python or storage details.
 
 Before opening a change, run the checks from [DOCS.md](DOCS.md): Python
-unittest/import checks, the optional CMake compatibility checks, and the web
-build. New public messages belong under
+unittest/import checks and the web build. New public messages belong under
 `contracts/v1/` and must include a representative example.
 
 Prefer standard-library and platform facilities over new dependencies. Add a

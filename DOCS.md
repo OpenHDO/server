@@ -33,10 +33,6 @@ is in `python/openhdo_server/` and uses FastAPI/Starlette, uvicorn, and typed
 Pydantic models. React owns the panel source in `web/`; a production build is
 served at `/admin` when `web/dist/` is present.
 
-The C++ files under `include/` and `src/` are frozen reference material during
-the migration. The root CMake presets remain a compatibility check for Python
-syntax and tests only; they do not build or install C++ targets.
-
 ## Repository layout
 
 ```text
@@ -44,7 +40,6 @@ contracts/v1/        language-neutral envelope, Linker, and Light contracts
 python/openhdo_server active Python runtime, models, repository, and service
 python/tests/         runtime and contract-focused tests
 web/                  server-owned React admin/configuration panel source
-include/, src/, tests/ frozen C++ reference material, not active runtime
 docs/adr/             architectural decisions
 ```
 
@@ -129,6 +124,16 @@ Configuration is versioned (`OPENHDO_CONFIG_VERSION=1`) and loaded through the
 typed `ServerSettings` boundary. Defaults bind to `127.0.0.1:8000`; a
 non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. When configured,
 control HTTP routes, Linker WS, event WS, and `/admin` require a bearer token.
+For a standalone React client on a separate origin,
+`OPENHDO_CORS_ORIGINS` accepts a comma-separated allowlist of exact `http` or
+`https` origins. CORS middleware is installed only when this list is non-empty,
+with `allow_credentials=False`, methods limited to `GET`, `PATCH`, and `POST`,
+and headers limited to `Authorization`, `Content-Type`, `Accept`, and
+`X-OpenHDO-Source`; wildcard origins are rejected. The same allowlist is
+checked against the WebSocket `Origin` header for `/api/v1/events` and
+`/api/v1/linkers/{id}`. If configured, a missing or disallowed origin closes
+with WebSocket code `4403`; if unset, existing local WebSocket behavior is
+preserved. This origin check does not replace bearer authorization.
 Startup, shutdown, registration, forwarding, state, and result paths emit
 structured JSON log events without logging credentials or vendor data.
 
@@ -152,8 +157,7 @@ npm run build
 
 After the build, run the server and open `/admin`. Without `web/dist/index.html`,
 the server returns a clear `admin_panel_unavailable` 404 instead of serving
-placeholder data. Root CMake `dev`/`ci` presets run only the Python compile and
-unittest compatibility checks.
+placeholder data.
 
 See [`docs/adr/0001-phase-one-control-plane.md`](docs/adr/0001-phase-one-control-plane.md)
 for the Phase 1 boundary choices.

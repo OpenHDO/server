@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   server:
-    name: Python server / CMake compatibility / tests
+    name: Python server / tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,12 +28,6 @@ jobs:
         run: |
           python -m compileall -q openhdo_server
           openhdo-server --check
-      - name: CMake compatibility checks
-        run: |
-          cmake --preset ci
-          cmake --build --preset ci
-          ctest --preset ci
-
   web:
     name: Web / TypeScript / Vite
     runs-on: ubuntu-latest
