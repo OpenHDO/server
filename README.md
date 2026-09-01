@@ -1,8 +1,10 @@
 # OpenHDO Server
 
-The OpenHDO Server is the C++20 control plane: it owns shared state,
-orchestration, the public API, authentication policy, persistence, and the
-server-side module host.
+The OpenHDO Server owns shared state, orchestration, the public API,
+authentication policy, persistence, and the server-side module host. Python
+is the chosen primary backend/runtime and React owns the web panels; the
+existing C++20 foundation is a frozen compatibility/build baseline and is not
+being extended.
 
 The server is intentionally a modular monolith. Hardware access belongs in
 the separate [OpenHDO Linker](https://github.com/OpenHDO/linker) process; web
@@ -12,15 +14,18 @@ clients and CLIs use the same public server contracts.
 
 - `openhdo-server` — central server executable;
 - `ohdocli` — administration and diagnostics CLI;
-- `openhdo_core` — small reusable C++ runtime library;
+- `openhdo_core` — frozen C++ foundation library;
 - `contracts/v1/` — versioned language-neutral protocol contracts;
 - `web/` — the built-in React + TypeScript + Tailwind + shadcn-style server
   admin/configuration panel shell;
-- `python/` — dependency-free reference SDK for protocol clients and Linkers.
+- `python/` — dependency-free protocol SDK and the future primary runtime
+  location.
 
-The current release is a buildable foundation. The long-running HTTP/WebSocket
-service, SQLite store, authentication, and live Linker session are planned
-server milestones, not hidden mock implementations.
+The current release is a buildable foundation. The Python backend/API
+migration is a separate follow-up; no new C++ API/runtime work is part of that
+migration. The long-running HTTP/WebSocket service, SQLite store,
+authentication, and live Linker session are planned server milestones, not
+hidden mock implementations.
 
 ## Build from source
 

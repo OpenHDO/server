@@ -22,6 +22,14 @@ The server must not contain radio, USB, serial, or device-specific protocol
 drivers. Those run in an isolated `openhdo-linker` process close to the
 hardware.
 
+## Runtime direction
+
+Python is the primary backend/runtime direction for the server, and React owns
+the web panels. The existing C++ runtime/foundation remains buildable as a
+frozen baseline but must not gain new API or runtime features. Rewriting the
+server runtime and API in Python is a separate follow-up task; the v1
+contracts remain language-neutral during that migration.
+
 ## Repository layout
 
 ```text
@@ -100,8 +108,9 @@ structured JSON-line logging, validated in-memory device registry, typed
 command/event path, protocol v1 schemas, built-in admin panel shell, Python
 reference SDK, CMake quality gates, and CI.
 
-Next server milestones: a wire adapter for the command/event path, HTTP API,
-WebSocket events, SQLite persistence, and a small authentication baseline.
+Next server milestones: the Python backend/API migration, then a wire adapter
+for the command/event path, HTTP API, WebSocket events, SQLite persistence,
+and a small authentication baseline.
 The current local path is intentionally transport- and persistence-free; these
 should be added behind the public contracts rather than leaking internal
 classes or storage tables. See

@@ -62,6 +62,7 @@ metadata so downstream consumers can reconcile state with the command.
 
 All Light messages are ordinary v1 envelopes. Existing Linker registration
 remains backward-compatible; its optional `devices` field carries the
-vendor-neutral descriptors above. The schemas define logical messages, not
-HTTP or WebSocket transport. New message types should be added with an example
-and a compatibility test.
+vendor-neutral descriptors above. The schemas define logical messages, not a
+runtime or HTTP/WebSocket transport, and are intentionally independent of the
+server implementation language. New message types should be added with an
+example and a compatibility test.
