@@ -4,8 +4,17 @@ from __future__ import annotations
 
 from datetime import datetime
 from threading import RLock
+from uuid import UUID
 
-from .models import DeviceManifest, LightRecord, LightState, LinkManifest
+from .models import (
+    DeviceManifest,
+    DiscoveryCandidatePayload,
+    DiscoveryCompletionStatus,
+    DiscoverySessionResponse,
+    LightRecord,
+    LightState,
+    LinkManifest,
+)
 
 
 class RepositoryError(Exception):
@@ -24,6 +33,14 @@ class LinkerConflict(RepositoryError):
 
 class StaleState(RepositoryError):
     code = "stale_state"
+
+
+class DiscoverySessionNotFound(RepositoryError):
+    code = "discovery_session_not_found"
+
+
+class DiscoverySessionConflict(RepositoryError):
+    code = "discovery_session_conflict"
 
 
 class InMemoryLightRepository:
@@ -101,3 +118,63 @@ class InMemoryLightRepository:
     @staticmethod
     def _copy(record: LightRecord) -> LightRecord:
         return record.model_copy(deep=True)
+
+
+class InMemoryDiscoverySessionRepository:
+    """Store transient discovery sessions for one server process."""
+
+    def __init__(self) -> None:
+        self._sessions: dict[UUID, tuple[UUID, DiscoverySessionResponse]] = {}
+        self._lock = RLock()
+
+    def create(self, session_id: UUID, linker_id: str, correlation_id: UUID) -> DiscoverySessionResponse:
+        with self._lock:
+            session = DiscoverySessionResponse(
+                session_id=session_id,
+                linker_id=linker_id,
+                status="running",
+                candidates=[],
+                error=None,
+            )
+            self._sessions[session_id] = (correlation_id, session)
+            return self._copy(session)
+
+    def get(self, session_id: UUID) -> tuple[UUID, DiscoverySessionResponse]:
+        with self._lock:
+            stored = self._sessions.get(session_id)
+            if stored is None:
+                raise DiscoverySessionNotFound("discovery session does not exist")
+            return stored[0], self._copy(stored[1])
+
+    def add_candidate(self, session_id: UUID, candidate: DiscoveryCandidatePayload) -> None:
+        with self._lock:
+            correlation_id, session = self._get(session_id)
+            if session.status != "running":
+                raise DiscoverySessionConflict("discovery session is no longer running")
+            candidates = [item for item in session.candidates if item.candidate_id != candidate.candidate_id]
+            candidates.append(candidate)
+            self._sessions[session_id] = (
+                correlation_id,
+                session.model_copy(update={"candidates": candidates}),
+            )
+
+    def finish(self, session_id: UUID, status: DiscoveryCompletionStatus, error: str | None) -> bool:
+        with self._lock:
+            correlation_id, session = self._get(session_id)
+            if session.status != "running":
+                return False
+            self._sessions[session_id] = (
+                correlation_id,
+                session.model_copy(update={"status": status, "error": error}),
+            )
+            return True
+
+    def _get(self, session_id: UUID) -> tuple[UUID, DiscoverySessionResponse]:
+        stored = self._sessions.get(session_id)
+        if stored is None:
+            raise DiscoverySessionNotFound("discovery session does not exist")
+        return stored[0], stored[1]
+
+    @staticmethod
+    def _copy(session: DiscoverySessionResponse) -> DiscoverySessionResponse:
+        return session.model_copy(deep=True)

@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openhdo.org/schemas/v1/discovery.schema.json",
+  "title": "OpenHDO discovery v1 messages",
+  "description": "A bounded server-to-Linker discovery request and its abstract candidate/completion replies.",
+  "allOf": [
+    {"$ref": "envelope.schema.json"}
+  ],
+  "oneOf": [
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "discovery.start"},
+        "payload": {"$ref": "https://openhdo.org/schemas/v1/discovery.schema.json#/$defs/start"}
+      }
+    },
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "discovery.candidate"},
+        "payload": {"$ref": "https://openhdo.org/schemas/v1/discovery.schema.json#/$defs/candidate"}
+      }
+    },
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "discovery.completed"},
+        "payload": {"$ref": "https://openhdo.org/schemas/v1/discovery.schema.json#/$defs/completed"}
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+    },
+    "start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "timeout_s"],
+      "properties": {
+        "session_id": {"type": "string", "format": "uuid"},
+        "timeout_s": {"type": "integer", "minimum": 1, "maximum": 60}
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "candidate_id", "name", "transport", "capabilities", "requires_pairing"],
+      "properties": {
+        "session_id": {"type": "string", "format": "uuid"},
+        "candidate_id": {"$ref": "https://openhdo.org/schemas/v1/discovery.schema.json#/$defs/identifier"},
+        "name": {"type": "string", "minLength": 1, "maxLength": 128},
+        "transport": {"const": "wifi"},
+        "capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "light-capability.schema.json"}
+        },
+        "requires_pairing": {"type": "boolean"}
+      }
+    },
+    "completed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "status", "error"],
+      "properties": {
+        "session_id": {"type": "string", "format": "uuid"},
+        "status": {"enum": ["completed", "failed"]},
+        "error": {"type": ["string", "null"], "maxLength": 512}
+      }
+    }
+  }
+}

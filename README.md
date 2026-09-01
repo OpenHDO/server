@@ -19,9 +19,10 @@ vendor-neutral contracts in `contracts/v1/`.
 
 The current Python vertical slice provides health and Light inventory HTTP
 endpoints, abstract Light command forwarding, Linker registration/state/result
-WebSockets, transient `light.updated` events, validated environment
-configuration, and structured JSON logging. It does not invent device data:
-lights enter the registry through a real Linker registration message.
+WebSockets, server-side discovery sessions, transient `light.updated` events,
+validated environment configuration, and structured JSON logging. It does not
+invent device data: lights enter the registry through a real Linker registration
+message, and an empty discovery scan remains empty.
 
 ## Run the server
 
@@ -60,9 +61,18 @@ The v1 API currently includes:
 - `PATCH /api/v1/lights/{id}` for one ergonomic abstract `power`, `brightness`
   (`0..255`), or `rgb_color` change plus an idempotency key;
 - `POST /api/v1/lights/{id}/commands` for a complete v1 command envelope;
+- `POST /api/v1/discovery/sessions` and
+  `GET /api/v1/discovery/sessions/{session_id}` for authenticated, transient
+  discovery sessions;
 - `WS /api/v1/events` for `light.updated`;
-- `WS /api/v1/linkers/{linker_id}` for `link.register`, state reports, and
-  command results.
+- `WS /api/v1/linkers/{linker_id}` for `link.register`, state reports, command
+  results, and `discovery.candidate`/`discovery.completed` replies.
+
+Discovery starts are forwarded on the connected Linker WebSocket as
+`discovery.start`. The server correlates replies to that envelope's `id`, keeps
+only abstract Wi-Fi candidates and their `requires_pairing` value, and marks a
+session failed when the Linker is unavailable or the bounded `1..60` second
+timeout expires. Session state is process-local and is not durable.
 
 ## Server admin panel
 

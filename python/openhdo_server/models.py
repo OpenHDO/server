@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StringConstraints, field_validator, model_validator
 
 
 Identifier = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9._-]{1,63}$")]
@@ -15,7 +15,10 @@ Brightness = Annotated[int, Field(ge=0, le=255)]
 Channel = Annotated[int, Field(ge=0, le=255)]
 IdempotencyKey = Annotated[str, StringConstraints(min_length=1, max_length=128)]
 Transport = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9._-]{0,31}$")]
+DiscoveryTimeout = Annotated[StrictInt, Field(ge=1, le=60)]
 ColorMode = Literal["RGB", "RGBW", "CCT"]
+DiscoverySessionStatus = Literal["running", "completed", "failed"]
+DiscoveryCompletionStatus = Literal["completed", "failed"]
 
 
 def utc_now() -> datetime:
@@ -208,8 +211,73 @@ class CommandResultEnvelope(EnvelopeBase):
     payload: CommandResultPayload
 
 
+class DiscoveryStartRequest(StrictModel):
+    linker_id: Identifier
+    timeout_s: DiscoveryTimeout
+
+
+class DiscoveryStartPayload(StrictModel):
+    session_id: UUID
+    timeout_s: DiscoveryTimeout
+
+
+class DiscoveryCandidatePayload(StrictModel):
+    session_id: UUID
+    candidate_id: Identifier
+    name: str = Field(min_length=1, max_length=128)
+    transport: Literal["wifi"]
+    capabilities: list[LightCapability] = Field(min_length=1)
+    requires_pairing: StrictBool
+
+
+class DiscoveryCompletedPayload(StrictModel):
+    session_id: UUID
+    status: DiscoveryCompletionStatus
+    error: str | None = Field(max_length=512)
+
+
+class DiscoveryStartEnvelope(EnvelopeBase):
+    type: Literal["discovery.start"]
+    correlation_id: UUID
+    payload: DiscoveryStartPayload
+
+    @model_validator(mode="after")
+    def correlation_targets_request(self) -> "DiscoveryStartEnvelope":
+        if self.correlation_id != self.id:
+            raise ValueError("discovery.start correlation_id must equal envelope id")
+        return self
+
+
+class DiscoveryCandidateEnvelope(EnvelopeBase):
+    type: Literal["discovery.candidate"]
+    correlation_id: UUID
+    payload: DiscoveryCandidatePayload
+
+
+class DiscoveryCompletedEnvelope(EnvelopeBase):
+    type: Literal["discovery.completed"]
+    correlation_id: UUID
+    payload: DiscoveryCompletedPayload
+
+
+DiscoveryEnvelope = Annotated[
+    DiscoveryStartEnvelope | DiscoveryCandidateEnvelope | DiscoveryCompletedEnvelope,
+    Field(discriminator="type"),
+]
+
+
+DiscoveryLinkerEnvelope = Annotated[
+    DiscoveryCandidateEnvelope | DiscoveryCompletedEnvelope,
+    Field(discriminator="type"),
+]
+
+
 LinkerEnvelope = Annotated[
-    LinkRegisterEnvelope | LightStateReportedEnvelope | CommandResultEnvelope,
+    LinkRegisterEnvelope
+    | LightStateReportedEnvelope
+    | CommandResultEnvelope
+    | DiscoveryCandidateEnvelope
+    | DiscoveryCompletedEnvelope,
     Field(discriminator="type"),
 ]
 
@@ -232,6 +300,14 @@ class HealthResponse(StrictModel):
 class LightsResponse(StrictModel):
     api_version: Literal[1] = 1
     lights: list[LightView]
+
+
+class DiscoverySessionResponse(StrictModel):
+    session_id: UUID
+    linker_id: Identifier
+    status: DiscoverySessionStatus
+    candidates: list[DiscoveryCandidatePayload]
+    error: str | None = None
 
 
 class ProblemResponse(StrictModel):

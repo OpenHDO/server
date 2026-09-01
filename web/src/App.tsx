@@ -4,11 +4,14 @@ import {
   Boxes,
   Cable,
   ChevronRight,
+  Clock3,
   CircleAlert,
+  CircleCheck,
   Gauge,
   LayoutDashboard,
   Network,
   RefreshCw,
+  Search,
   Server,
   Settings,
 } from "lucide-react";
@@ -37,6 +40,23 @@ type Light = {
   } | null;
 };
 
+type DiscoveryCandidate = {
+  session_id: string;
+  candidate_id: string;
+  name: string;
+  transport: "wifi";
+  capabilities: Light["capability"][];
+  requires_pairing: boolean;
+};
+
+type DiscoverySession = {
+  session_id: string;
+  linker_id: string;
+  status: "running" | "completed" | "failed";
+  candidates: DiscoveryCandidate[];
+  error: string | null;
+};
+
 const navigation = [
   { label: "Overview", icon: LayoutDashboard },
   { label: "Lights", icon: Boxes },
@@ -44,12 +64,19 @@ const navigation = [
   { label: "Settings", icon: Settings },
 ];
 
+const DEFAULT_LINKER_ID = "linker.local";
+
 export default function App() {
   const [active, setActive] = useState("Overview");
   const [health, setHealth] = useState<Health | null>(null);
   const [lights, setLights] = useState<Light[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [linkerId, setLinkerId] = useState(DEFAULT_LINKER_ID);
+  const [timeoutSeconds, setTimeoutSeconds] = useState(30);
+  const [discoverySession, setDiscoverySession] = useState<DiscoverySession | null>(null);
+  const [discoveryStarting, setDiscoveryStarting] = useState(false);
+  const [discoveryError, setDiscoveryError] = useState<string | null>(null);
 
   async function loadData() {
     setLoading(true);
@@ -76,6 +103,47 @@ export default function App() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  useEffect(() => {
+    if (!discoverySession || discoverySession.status !== "running") return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/v1/discovery/sessions/${discoverySession.session_id}`);
+        if (!response.ok) throw new Error("The discovery session could not be read.");
+        const next = (await response.json()) as DiscoverySession;
+        if (!cancelled) {
+          setDiscoverySession(next);
+          setDiscoveryError(null);
+        }
+      } catch (reason) {
+        if (!cancelled) setDiscoveryError(reason instanceof Error ? reason.message : "Discovery polling failed.");
+      }
+    };
+    const timer = window.setInterval(() => void poll(), 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [discoverySession?.session_id, discoverySession?.status]);
+
+  async function startDiscovery() {
+    setDiscoveryStarting(true);
+    setDiscoveryError(null);
+    try {
+      const response = await fetch("/api/v1/discovery/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linker_id: linkerId, timeout_s: timeoutSeconds }),
+      });
+      if (!response.ok) throw new Error("The server did not accept the discovery request.");
+      setDiscoverySession((await response.json()) as DiscoverySession);
+    } catch (reason) {
+      setDiscoveryError(reason instanceof Error ? reason.message : "Discovery could not be started.");
+    } finally {
+      setDiscoveryStarting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#08111f] text-slate-100">
@@ -149,6 +217,44 @@ export default function App() {
             <SummaryCard icon={Activity} label="API" value={health ? `v${health.api_version}` : "—"} caption="versioned boundary" />
           </section>
 
+          <section className="rounded-2xl border border-cyan-300/20 bg-[#0d192b] p-5 sm:p-6" aria-labelledby="discovery-title">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-sm font-medium"><Search size={16} className="text-cyan-300" /> <span id="discovery-title">Add device</span></div>
+                <p className="mt-1 text-xs text-slate-500">Ask a connected Linker to scan for real Wi-Fi devices.</p>
+              </div>
+              <DiscoveryStatus session={discoverySession} />
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_9rem_auto] sm:items-end">
+              <label className="block text-xs text-slate-400">
+                Linker id
+                <input
+                  value={linkerId}
+                  onChange={(event) => setLinkerId(event.target.value)}
+                  pattern="^[a-z][a-z0-9._-]{1,63}$"
+                  required
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 outline-none ring-cyan-300/50 focus:ring-2"
+                />
+              </label>
+              <label className="block text-xs text-slate-400">
+                Timeout (s)
+                <input
+                  type="number"
+                  min={1}
+                  max={60}
+                  value={timeoutSeconds}
+                  onChange={(event) => setTimeoutSeconds(Number(event.target.value))}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950/50 px-3 py-2.5 text-sm text-slate-100 outline-none ring-cyan-300/50 focus:ring-2"
+                />
+              </label>
+              <Button onClick={() => void startDiscovery()} disabled={discoveryStarting || discoverySession?.status === "running"}>
+                <Search size={15} /> {discoveryStarting ? "Starting…" : "Scan"}
+              </Button>
+            </div>
+            {discoveryError && <p className="mt-3 text-xs text-amber-200" role="alert">{discoveryError}</p>}
+            {discoverySession && <DiscoveryResults session={discoverySession} />}
+          </section>
+
           <section className="rounded-2xl border border-slate-800 bg-[#0d192b] p-5 sm:p-6" aria-labelledby="lights-title">
             <div className="flex items-start justify-between">
               <div>
@@ -203,6 +309,47 @@ function LightRow({ light }: { light: Light }) {
         <p>{state ? `${state.power ? "On" : "Off"} · ${state.brightness}/255` : "State pending"}</p>
         <p className="mt-1">{light.capability.color_modes?.join("/") ?? "Light"}</p>
       </div>
+    </div>
+  );
+}
+
+function DiscoveryStatus({ session }: { session: DiscoverySession | null }) {
+  if (!session) return <span className="text-xs text-slate-500">Ready to scan</span>;
+  const tone = session.status === "failed" ? "text-amber-200" : session.status === "completed" ? "text-emerald-300" : "text-cyan-200";
+  return <span className={`text-xs ${tone}`}>{session.status === "running" ? "Scanning…" : session.status}</span>;
+}
+
+function DiscoveryResults({ session }: { session: DiscoverySession }) {
+  return (
+    <div className="mt-5 border-t border-slate-800 pt-4">
+      <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
+        <span className="flex items-center gap-2"><Clock3 size={14} /> Session {session.session_id}</span>
+        <span>{session.candidates.length} candidate{session.candidates.length === 1 ? "" : "s"}</span>
+      </div>
+      {session.error && <p className="mt-3 text-sm text-amber-200">{session.error}</p>}
+      {session.candidates.length === 0 ? (
+        <p className="mt-3 rounded-xl border border-dashed border-slate-700 p-4 text-sm text-slate-500">
+          {session.status === "running" ? "No candidates reported yet." : "No devices found by the connected Linker."}
+        </p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {session.candidates.map((candidate) => (
+            <div key={candidate.candidate_id} className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-800/80 bg-slate-950/20 p-3">
+              <CircleCheck size={16} className="text-emerald-300" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-slate-200">{candidate.name}</p>
+                <p className="truncate text-xs text-slate-500">{candidate.candidate_id} · {candidate.transport}</p>
+              </div>
+              <div className="text-right text-xs text-slate-500">
+                <p>{candidate.capabilities.length} light capabilit{candidate.capabilities.length === 1 ? "y" : "ies"}</p>
+                <p className={candidate.requires_pairing ? "mt-1 text-amber-200" : "mt-1 text-emerald-300"}>
+                  {candidate.requires_pairing ? "Pairing required" : "No pairing required"}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

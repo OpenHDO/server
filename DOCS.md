@@ -70,10 +70,13 @@ The active runtime exposes these transport adapters over the same v1 model:
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}` read canonical state;
 - `POST /api/v1/lights/{id}/commands` accepts a complete typed command
   envelope;
+- `POST /api/v1/discovery/sessions` starts an authenticated bounded discovery
+  session and `GET /api/v1/discovery/sessions/{session_id}` reads its current
+  process-local state;
 - `PATCH /api/v1/lights/{id}` adapts one `power`, `brightness`, or `rgb_color`
   change plus an idempotency key into that same typed command path;
 - `WS /api/v1/linkers/{linker_id}` accepts `link.register`,
-  `light.state.reported`, and `command.result` envelopes;
+  `light.state.reported`, `command.result`, and discovery reply envelopes;
 - `WS /api/v1/events` publishes canonical `light.updated` event envelopes.
 
 The Linker WS is a message endpoint, not a device protocol adapter. The server
@@ -88,6 +91,17 @@ results carrying state produce `light.updated` with the same correlation ID.
 The process-local event observer is intentionally transient and bounded. It
 does not promise durable delivery; persistence, replay, retry, and a dead-letter
 channel belong behind an explicit future reliability requirement.
+
+Discovery follows the same command/request-reply/correlation/observer boundary:
+the server creates a UUID session, forwards `discovery.start` over the
+connected Linker socket with `correlation_id` equal to the start envelope `id`,
+and accepts only source-matching `discovery.candidate` and
+`discovery.completed` messages for that session. The session is marked failed
+on unavailable transport, a Linker-reported failure, or timeout after 1..60
+seconds. Candidates are never synthesized; a successful scan may have an
+empty candidate list. The candidate contract is intentionally limited to
+abstract Light capability data, Wi-Fi transport, and the honest
+`requires_pairing` flag.
 
 Compatibility rules:
 

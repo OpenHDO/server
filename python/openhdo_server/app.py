@@ -7,7 +7,7 @@ import hmac
 import json
 import logging
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
@@ -22,6 +22,10 @@ from .logging import configure_logging, log_event
 from .models import (
     BrightnessCommandEnvelope,
     CommandResultEnvelope,
+    DiscoveryCandidateEnvelope,
+    DiscoveryCompletedEnvelope,
+    DiscoverySessionResponse,
+    DiscoveryStartRequest,
     HealthResponse,
     LightCommandEnvelope,
     LightPatchRequest,
@@ -38,8 +42,8 @@ from .models import (
     Source,
     utc_now,
 )
-from .repository import InMemoryLightRepository
-from .service import LightService, ServiceError
+from .repository import InMemoryDiscoverySessionRepository, InMemoryLightRepository
+from .service import DiscoveryService, LightService, ServiceError
 
 
 _SOURCE_ADAPTER = TypeAdapter(Source)
@@ -70,12 +74,19 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     settings = settings or load_settings()
     logger = configure_logging(settings.log_level)
     repository = InMemoryLightRepository(clock=utc_now)
+    discovery_repository = InMemoryDiscoverySessionRepository()
     connections = LinkerConnections()
     events = LightEventHub()
     service = LightService(
         repository=repository,
         transport=connections,
         events=events,
+        instance_name=settings.instance_name,
+        logger=logger,
+    )
+    discovery_service = DiscoveryService(
+        repository=discovery_repository,
+        transport=connections,
         instance_name=settings.instance_name,
         logger=logger,
     )
@@ -89,6 +100,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             {"runtime": "python", "instance_name": settings.instance_name, "host": settings.host, "port": settings.port},
         )
         yield
+        await discovery_service.close()
         log_event(logger, logging.INFO, "server.shutdown", {"instance_name": settings.instance_name})
 
     application = FastAPI(title="OpenHDO Server", version="0.1.0", lifespan=lifespan)
@@ -102,6 +114,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         )
     application.state.settings = settings
     application.state.service = service
+    application.state.discovery_service = discovery_service
     application.state.connections = connections
     web_dist = Path(__file__).resolve().parents[2] / "web" / "dist"
     admin_index = web_dist / "index.html"
@@ -235,6 +248,23 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             )
         return await service.submit_command(command)
 
+    @application.post(
+        "/api/v1/discovery/sessions",
+        response_model=DiscoverySessionResponse,
+        status_code=202,
+        dependencies=[Depends(require_authorization)],
+    )
+    async def start_discovery(request: DiscoveryStartRequest) -> DiscoverySessionResponse:
+        return await discovery_service.start(request)
+
+    @application.get(
+        "/api/v1/discovery/sessions/{session_id}",
+        response_model=DiscoverySessionResponse,
+        dependencies=[Depends(require_authorization)],
+    )
+    async def get_discovery_session(session_id: UUID) -> DiscoverySessionResponse:
+        return discovery_service.get(session_id)
+
     @application.websocket("/api/v1/events")
     async def events_socket(websocket: WebSocket) -> None:
         if not _origin_matches(websocket.headers, settings.cors_origins, require_origin=True):
@@ -284,6 +314,10 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                         return
                     elif isinstance(message, LightStateReportedEnvelope):
                         await service.ingest_state(linker_id, message)
+                    elif isinstance(message, DiscoveryCandidateEnvelope):
+                        await discovery_service.ingest_candidate(linker_id, message)
+                    elif isinstance(message, DiscoveryCompletedEnvelope):
+                        await discovery_service.ingest_completed(linker_id, message)
                     else:
                         await service.ingest_result(linker_id, message)
                 except ServiceError as error:

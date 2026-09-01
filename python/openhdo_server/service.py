@@ -14,6 +14,11 @@ from .logging import log_event
 from .models import (
     CommandResultEnvelope,
     CommandResultPayload,
+    DiscoveryCandidateEnvelope,
+    DiscoveryCompletedEnvelope,
+    DiscoverySessionResponse,
+    DiscoveryStartEnvelope,
+    DiscoveryStartRequest,
     LightCommandEnvelope,
     LightRecord,
     LightStateReportedEnvelope,
@@ -23,7 +28,10 @@ from .models import (
     utc_now,
 )
 from .repository import (
+    InMemoryDiscoverySessionRepository,
     InMemoryLightRepository,
+    DiscoverySessionConflict,
+    DiscoverySessionNotFound,
     LightNotFound,
     LinkerConflict,
     RepositoryError,
@@ -33,6 +41,10 @@ from .repository import (
 
 class CommandTransport(Protocol):
     async def send(self, linker_id: str, message: LightCommandEnvelope) -> bool: ...
+
+
+class DiscoveryTransport(Protocol):
+    async def send(self, linker_id: str, message: DiscoveryStartEnvelope) -> bool: ...
 
 
 class ServiceError(Exception):
@@ -228,3 +240,160 @@ class LightService:
     def _require_linker_source(linker_id: str, message: LinkerEnvelope) -> None:
         if message.source != linker_id:
             raise ServiceError(403, "source_mismatch", "message source does not match the linker connection")
+
+
+class DiscoveryService:
+    """Coordinate bounded, process-local discovery sessions."""
+
+    def __init__(
+        self,
+        repository: InMemoryDiscoverySessionRepository,
+        transport: DiscoveryTransport,
+        instance_name: str,
+        logger: logging.Logger,
+        clock: Callable = utc_now,
+    ) -> None:
+        self.repository = repository
+        self._transport = transport
+        self._instance_name = instance_name
+        self._logger = logger
+        self._clock = clock
+        self._timeouts: dict[UUID, asyncio.Task[None]] = {}
+
+    async def start(self, request: DiscoveryStartRequest) -> DiscoverySessionResponse:
+        session_id = uuid4()
+        start_id = uuid4()
+        start = DiscoveryStartEnvelope(
+            v=1,
+            id=start_id,
+            type="discovery.start",
+            ts=self._clock(),
+            source=self._instance_name,
+            correlation_id=start_id,
+            payload={"session_id": session_id, "timeout_s": request.timeout_s},
+        )
+        self.repository.create(session_id, request.linker_id, start.id)
+        try:
+            sent = await self._transport.send(request.linker_id, start)
+        except Exception:
+            sent = False
+        if not sent:
+            self.repository.finish(
+                session_id,
+                "failed",
+                "the linker is not connected or could not receive discovery.start",
+            )
+            log_event(
+                self._logger,
+                logging.WARNING,
+                "discovery.failed",
+                {"session_id": str(session_id), "linker_id": request.linker_id, "error": "linker_unavailable"},
+            )
+        else:
+            self._timeouts[session_id] = asyncio.create_task(
+                self._expire(session_id, request.timeout_s),
+                name=f"discovery-timeout-{session_id}",
+            )
+            log_event(
+                self._logger,
+                logging.INFO,
+                "discovery.started",
+                {"session_id": str(session_id), "linker_id": request.linker_id, "timeout_s": request.timeout_s},
+            )
+        return self.get(session_id)
+
+    def get(self, session_id: UUID) -> DiscoverySessionResponse:
+        try:
+            return self.repository.get(session_id)[1]
+        except DiscoverySessionNotFound as error:
+            raise ServiceError(404, error.code, str(error)) from error
+
+    async def ingest_candidate(self, linker_id: str, message: DiscoveryCandidateEnvelope) -> None:
+        self._require_linker_source(linker_id, message)
+        _, session = self._matching_session(linker_id, message.correlation_id, message.payload.session_id)
+        try:
+            self.repository.add_candidate(session.session_id, message.payload)
+        except DiscoverySessionConflict as error:
+            raise ServiceError(409, "discovery_session_closed", str(error)) from error
+        log_event(
+            self._logger,
+            logging.INFO,
+            "discovery.candidate",
+            {"session_id": str(session.session_id), "linker_id": linker_id, "candidate_id": message.payload.candidate_id},
+        )
+
+    async def ingest_completed(self, linker_id: str, message: DiscoveryCompletedEnvelope) -> None:
+        self._require_linker_source(linker_id, message)
+        _, session = self._matching_session(linker_id, message.correlation_id, message.payload.session_id)
+        error = message.payload.error
+        if message.payload.status == "failed" and error is None:
+            error = "linker reported discovery failure"
+        finished = self.repository.finish(session.session_id, message.payload.status, error)
+        self._cancel_timeout(session.session_id)
+        if finished:
+            log_event(
+                self._logger,
+                logging.INFO if message.payload.status == "completed" else logging.WARNING,
+                "discovery.completed",
+                {
+                    "session_id": str(session.session_id),
+                    "linker_id": linker_id,
+                    "status": message.payload.status,
+                },
+            )
+
+    async def close(self) -> None:
+        tasks = tuple(self._timeouts.values())
+        self._timeouts.clear()
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _expire(self, session_id: UUID, timeout_s: int) -> None:
+        try:
+            await asyncio.sleep(timeout_s)
+            try:
+                _, session = self.repository.get(session_id)
+                finished = self.repository.finish(session_id, "failed", "discovery timed out")
+            except DiscoverySessionNotFound:
+                return
+            if finished:
+                log_event(
+                    self._logger,
+                    logging.WARNING,
+                    "discovery.timeout",
+                    {"session_id": str(session.session_id), "linker_id": session.linker_id},
+                )
+        except asyncio.CancelledError:
+            raise
+        finally:
+            if self._timeouts.get(session_id) is asyncio.current_task():
+                self._timeouts.pop(session_id, None)
+
+    def _matching_session(
+        self, linker_id: str, correlation_id: UUID, session_id: UUID
+    ) -> tuple[UUID, DiscoverySessionResponse]:
+        try:
+            expected_correlation, session = self.repository.get(session_id)
+        except DiscoverySessionNotFound as error:
+            raise ServiceError(409, "unknown_discovery_session", str(error)) from error
+        if session.linker_id != linker_id:
+            raise ServiceError(403, "linker_mismatch", "discovery session belongs to another linker")
+        if correlation_id != expected_correlation:
+            raise ServiceError(
+                409,
+                "correlation_mismatch",
+                "discovery message correlation does not match discovery.start",
+            )
+        return expected_correlation, session
+
+    @staticmethod
+    def _require_linker_source(linker_id: str, message: DiscoveryCandidateEnvelope | DiscoveryCompletedEnvelope) -> None:
+        if message.source != linker_id:
+            raise ServiceError(403, "source_mismatch", "message source does not match the linker connection")
+
+    def _cancel_timeout(self, session_id: UUID) -> None:
+        task = self._timeouts.pop(session_id, None)
+        if task is not None and task is not asyncio.current_task():
+            task.cancel()

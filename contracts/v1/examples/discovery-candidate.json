@@ -1,0 +1,24 @@
+{
+  "v": 1,
+  "id": "00000000-0000-4000-8000-000000000203",
+  "type": "discovery.candidate",
+  "ts": "2026-01-01T00:00:03Z",
+  "source": "linker.example",
+  "correlation_id": "00000000-0000-4000-8000-000000000201",
+  "payload": {
+    "session_id": "00000000-0000-4000-8000-000000000202",
+    "candidate_id": "light.discovered",
+    "name": "Discovered light",
+    "transport": "wifi",
+    "capabilities": [
+      {
+        "kind": "light",
+        "power": true,
+        "brightness": {"min": 0, "max": 255},
+        "color_modes": ["RGB"],
+        "rgb_channel_range": {"min": 0, "max": 255}
+      }
+    ],
+    "requires_pairing": true
+  }
+}

@@ -20,6 +20,9 @@ authentication, bounded message sizes, timeouts, and reconnect handling.
 - Commands and results use `correlation_id` to connect a response or event to
   a request. A command's `command_id` identifies the logical command, while
   `idempotency_key` is reused for retries of that same command.
+- Discovery uses the same request/reply rule: `discovery.start` sets
+  `correlation_id` equal to its own envelope `id`; candidate and completion
+  messages repeat that id.
 
 ## Light v1
 
@@ -66,3 +69,21 @@ vendor-neutral descriptors above. The schemas define logical messages, not a
 runtime or HTTP/WebSocket transport, and are intentionally independent of the
 server implementation language. New message types should be added with an
 example and a compatibility test.
+
+## Discovery v1
+
+[`discovery.schema.json`](discovery.schema.json) defines the server-owned
+discovery vertical slice:
+
+- `discovery.start` carries a UUID `session_id` and integer `timeout_s` from 1
+  through 60. Its envelope `correlation_id` must equal its envelope `id`.
+- `discovery.candidate` carries only an abstract `candidate_id`, display name,
+  `transport: "wifi"`, Light capabilities, and `requires_pairing`.
+- `discovery.completed` carries the session UUID, `completed` or `failed`
+  status, and a nullable error.
+
+The server exposes authenticated POST/GET session endpoints and forwards the
+start message over the existing Linker WebSocket. Sessions are process-local;
+the server times out bounded scans and never manufactures candidates. Linker
+pairing, vendor/model data, IPs, local keys, and DP fields are outside this
+contract.

@@ -6,7 +6,7 @@ import asyncio
 
 from fastapi import WebSocket
 
-from .models import LightCommandEnvelope, LightUpdatedEnvelope
+from .models import EnvelopeBase, LightUpdatedEnvelope
 
 
 class LinkerConnections:
@@ -32,7 +32,7 @@ class LinkerConnections:
             if self._connections.get(linker_id) is websocket:
                 del self._connections[linker_id]
 
-    async def send(self, linker_id: str, message: LightCommandEnvelope) -> bool:
+    async def send(self, linker_id: str, message: EnvelopeBase) -> bool:
         async with self._lock:
             websocket = self._connections.get(linker_id)
         if websocket is None:

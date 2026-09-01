@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import unittest
+import time
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -61,6 +62,23 @@ def reported_state(brightness: int, revision: int, **extra: object) -> dict:
             "rgb_color": {"r": 1, "g": 2, "b": 3},
             "state_revision": revision,
         },
+        **extra,
+    )
+
+
+def discovery_candidate(session_id: str, correlation_id: str, **extra: object) -> dict:
+    return envelope(
+        "discovery.candidate",
+        "linker.test",
+        {
+            "session_id": session_id,
+            "candidate_id": "light.discovered",
+            "name": "Discovered light",
+            "transport": "wifi",
+            "capabilities": [light_capability()],
+            "requires_pairing": True,
+        },
+        correlation_id=correlation_id,
         **extra,
     )
 
@@ -222,6 +240,115 @@ class ServerApiTests(unittest.TestCase):
                 forwarded = linker.receive_json()
                 self.assertEqual(forwarded["type"], "light.command.brightness")
                 self.assertEqual(forwarded["payload"]["brightness"], 0)
+
+    def test_discovery_session_uses_linker_socket_and_keeps_real_empty_scan_empty(self) -> None:
+        with TestClient(create_app(ServerSettings())) as client:
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                response = client.post(
+                    "/api/v1/discovery/sessions",
+                    json={"linker_id": "linker.test", "timeout_s": 3},
+                )
+                self.assertEqual(response.status_code, 202)
+                session = response.json()
+                self.assertEqual(
+                    session,
+                    {
+                        "session_id": session["session_id"],
+                        "linker_id": "linker.test",
+                        "status": "running",
+                        "candidates": [],
+                        "error": None,
+                    },
+                )
+
+                start = linker.receive_json()
+                self.assertEqual(start["type"], "discovery.start")
+                self.assertEqual(start["correlation_id"], start["id"])
+                self.assertEqual(start["payload"]["session_id"], session["session_id"])
+                self.assertEqual(start["payload"]["timeout_s"], 3)
+
+                empty = client.get(f"/api/v1/discovery/sessions/{session['session_id']}")
+                self.assertEqual(empty.status_code, 200)
+                self.assertEqual(empty.json()["candidates"], [])
+
+                linker.send_json(discovery_candidate(session["session_id"], start["id"]))
+                candidate = client.get(f"/api/v1/discovery/sessions/{session['session_id']}").json()
+                self.assertEqual(candidate["candidates"][0]["candidate_id"], "light.discovered")
+                self.assertTrue(candidate["candidates"][0]["requires_pairing"])
+                self.assertNotIn("vendor", candidate["candidates"][0])
+
+                linker.send_json(
+                    envelope(
+                        "discovery.completed",
+                        "linker.test",
+                        {"session_id": session["session_id"], "status": "completed", "error": None},
+                        correlation_id=start["id"],
+                    )
+                )
+                completed = client.get(f"/api/v1/discovery/sessions/{session['session_id']}").json()
+                self.assertEqual(completed["status"], "completed")
+
+    def test_discovery_timeout_and_unavailable_linker_are_explicit_failures(self) -> None:
+        with TestClient(create_app(ServerSettings())) as client:
+            unavailable = client.post(
+                "/api/v1/discovery/sessions",
+                json={"linker_id": "linker.test", "timeout_s": 1},
+            )
+            self.assertEqual(unavailable.status_code, 202)
+            self.assertEqual(unavailable.json()["status"], "failed")
+            self.assertIn("not connected", unavailable.json()["error"])
+
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                response = client.post(
+                    "/api/v1/discovery/sessions",
+                    json={"linker_id": "linker.test", "timeout_s": 1},
+                )
+                session_id = response.json()["session_id"]
+                linker.receive_json()
+                time.sleep(1.2)
+                timed_out = client.get(f"/api/v1/discovery/sessions/{session_id}").json()
+                self.assertEqual(timed_out["status"], "failed")
+                self.assertEqual(timed_out["error"], "discovery timed out")
+
+    def test_discovery_requires_auth_and_rejects_wrong_correlation(self) -> None:
+        application = create_app(ServerSettings(api_token="long-enough-token"))
+        with TestClient(application) as client:
+            body = {"linker_id": "linker.test", "timeout_s": 1}
+            self.assertEqual(client.post("/api/v1/discovery/sessions", json=body).status_code, 401)
+            with client.websocket_connect(
+                "/api/v1/linkers/linker.test", headers={"Authorization": "Bearer long-enough-token"}
+            ) as linker:
+                linker.send_json(register_message())
+                started = client.post(
+                    "/api/v1/discovery/sessions",
+                    json={**body, "timeout_s": 3},
+                    headers={"Authorization": "Bearer long-enough-token"},
+                )
+                self.assertEqual(started.status_code, 202)
+                session = started.json()
+                start = linker.receive_json()
+                linker.send_json(discovery_candidate(session["session_id"], str(uuid4())))
+                with self.assertRaises(WebSocketDisconnect) as error:
+                    linker.receive_json()
+                self.assertEqual(error.exception.code, 1008)
+                self.assertEqual(
+                    client.get(
+                        f"/api/v1/discovery/sessions/{session['session_id']}",
+                        headers={"Authorization": "Bearer long-enough-token"},
+                    ).json()["candidates"],
+                    [],
+                )
+
+    def test_discovery_request_is_strictly_bounded(self) -> None:
+        with TestClient(create_app(ServerSettings())) as client:
+            for body in (
+                {"linker_id": "linker.test", "timeout_s": 0},
+                {"linker_id": "linker.test", "timeout_s": 61},
+                {"linker_id": "linker.test", "timeout_s": 1, "device_id": "not-allowed"},
+            ):
+                self.assertEqual(client.post("/api/v1/discovery/sessions", json=body).status_code, 422)
 
     def test_admin_panel_is_optional_and_has_a_server_owned_path(self) -> None:
         application = create_app(ServerSettings())
