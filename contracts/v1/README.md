@@ -45,6 +45,14 @@ vendor-specific fields to these messages.
   OpenHDO's own vendor-neutral contract semantics; it does not import a
   runtime or gateway model.
 
+Linker discovery may attach devices to the existing `link.register` payload.
+Each device has an abstract capability list; the Light descriptor is defined
+by [`light-capability.schema.json`](light-capability.schema.json) and contains
+only `power`, a brightness range of 0 to 255, optional `RGB`/`RGBW`/`CCT`
+color modes, and an RGB channel range of 0 to 255. Device pairing, protocol,
+DP mapping, vendor/model details, local keys, and real-device connections are
+Linker concerns and are not part of the server contract.
+
 `correlation_id` refers to the envelope `id` of the request being correlated.
 For a command retry, the envelope `id` may change, but `command_id` and
 `idempotency_key` remain unchanged. Receivers must not execute the same
@@ -52,7 +60,8 @@ logical command more than once for a repeated idempotency key within their
 configured retention window. `light.state.changed` repeats the command
 metadata so downstream consumers can reconcile state with the command.
 
-All Light messages are ordinary v1 envelopes, so existing envelope validation
-and Linker registration remain unchanged. The schemas define logical messages,
-not HTTP or WebSocket transport. New message types should be added with an
-example and a compatibility test.
+All Light messages are ordinary v1 envelopes. Existing Linker registration
+remains backward-compatible; its optional `devices` field carries the
+vendor-neutral descriptors above. The schemas define logical messages, not
+HTTP or WebSocket transport. New message types should be added with an example
+and a compatibility test.

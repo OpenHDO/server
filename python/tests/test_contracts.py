@@ -28,10 +28,11 @@ def _load(path: Path) -> dict:
 class ContractTests(unittest.TestCase):
     def test_light_schemas_are_versioned_and_use_the_common_envelope(self) -> None:
         light_schema = _load(CONTRACTS / "light.schema.json")
+        capability_schema = _load(CONTRACTS / "light-capability.schema.json")
         command_schema = _load(CONTRACTS / "light-command.schema.json")
         state_schema = _load(CONTRACTS / "light-state.schema.json")
 
-        for schema in (light_schema, command_schema, state_schema):
+        for schema in (light_schema, capability_schema, command_schema, state_schema):
             self.assertEqual(
                 schema["$schema"], "https://json-schema.org/draft/2020-12/schema"
             )
@@ -39,6 +40,21 @@ class ContractTests(unittest.TestCase):
 
         self.assertEqual(command_schema["allOf"], [{"$ref": "envelope.schema.json"}])
         self.assertEqual(state_schema["allOf"], [{"$ref": "envelope.schema.json"}])
+        manifest = _load(CONTRACTS / "link-manifest.schema.json")
+        self.assertEqual(
+            manifest["properties"]["devices"]["items"]["properties"]["capabilities"]["items"]["$ref"],
+            "light-capability.schema.json",
+        )
+        self.assertTrue(capability_schema["additionalProperties"] is False)
+        for forbidden in (
+            "vendor",
+            "model",
+            "local_key",
+            "pairing",
+            "protocol",
+            "dp_mapping",
+        ):
+            self.assertNotIn(forbidden, capability_schema["properties"])
         self.assertEqual(len(command_schema["oneOf"]), 3)
         self.assertEqual(len(state_schema["oneOf"]), 2)
         self.assertEqual(light_schema["$defs"]["brightness"]["minimum"], 0)
@@ -70,7 +86,7 @@ class ContractTests(unittest.TestCase):
 
     def test_examples_preserve_envelope_and_light_identity_rules(self) -> None:
         examples = sorted((CONTRACTS / "examples").glob("*.json"))
-        self.assertGreaterEqual(len(examples), 6)
+        self.assertGreaterEqual(len(examples), 7)
         for path in examples:
             message = _load(path)
             self._assert_envelope(message)
@@ -78,12 +94,12 @@ class ContractTests(unittest.TestCase):
             payload = message["payload"]
 
             if message_type == "link.register":
-                self.assertEqual(
-                    {"id", "version", "name", "transports"}, set(payload)
-                )
+                self.assertTrue({"id", "version", "name", "transports"} <= set(payload))
                 self.assertRegex(payload["id"], LIGHT_ID_PATTERN)
                 self.assertRegex(payload["version"], r"^\d+\.\d+\.\d+")
                 self.assertIsInstance(payload["transports"], list)
+                if "devices" in payload:
+                    self._assert_devices(payload["devices"])
                 continue
 
             if message_type in LIGHT_COMMAND_TYPES:
@@ -126,6 +142,41 @@ class ContractTests(unittest.TestCase):
         self._assert_rgb(payload["rgb_color"])
         self.assertIs(type(payload["state_revision"]), int)
         self.assertGreaterEqual(payload["state_revision"], 0)
+
+    def _assert_devices(self, devices: object) -> None:
+        self.assertIsInstance(devices, list)
+        self.assertGreater(len(devices), 0)
+        for device in devices:
+            self.assertIsInstance(device, dict)
+            self.assertRegex(device["id"], LIGHT_ID_PATTERN)
+            self.assertTrue(isinstance(device["name"], str) and device["name"])
+            capabilities = device["capabilities"]
+            self.assertIsInstance(capabilities, list)
+            self.assertGreater(len(capabilities), 0)
+            for capability in capabilities:
+                self.assertEqual(capability["kind"], "light")
+                self.assertIs(type(capability["power"]), bool)
+                self.assertEqual(capability["brightness"], {"min": 0, "max": 255})
+                if "color_modes" in capability:
+                    self.assertTrue(
+                        set(capability["color_modes"]) <= {"RGB", "RGBW", "CCT"}
+                    )
+                if "rgb_channel_range" in capability:
+                    self.assertTrue(
+                        {"RGB", "RGBW"} & set(capability["color_modes"])
+                    )
+                    self.assertEqual(
+                        capability["rgb_channel_range"], {"min": 0, "max": 255}
+                    )
+                for forbidden in (
+                    "vendor",
+                    "model",
+                    "local_key",
+                    "pairing",
+                    "protocol",
+                    "dp_mapping",
+                ):
+                    self.assertNotIn(forbidden, capability)
 
     def _assert_brightness(self, value: object) -> None:
         self.assertIs(type(value), int)

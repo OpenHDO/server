@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openhdo.org/schemas/v1/light-capability.schema.json",
+  "title": "OpenHDO Light v1 capability descriptor",
+  "description": "Vendor-neutral Light capabilities advertised by a Linker during device discovery.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "power", "brightness"],
+  "properties": {
+    "kind": {
+      "const": "light"
+    },
+    "power": {
+      "type": "boolean",
+      "description": "Whether the device supports power control and state."
+    },
+    "brightness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": {"const": 0},
+        "max": {"const": 255}
+      }
+    },
+    "color_modes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["RGB", "RGBW", "CCT"]
+      },
+      "description": "Color modes supported by the physical Light."
+    },
+    "rgb_channel_range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": {"const": 0},
+        "max": {"const": 255}
+      },
+      "description": "Inclusive range for each R, G, and B channel."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["color_modes"],
+        "properties": {
+          "color_modes": {"contains": {"enum": ["RGB", "RGBW"]}}
+        }
+      },
+      "then": {"required": ["rgb_channel_range"]}
+    },
+    {
+      "if": {
+        "required": ["rgb_channel_range"]
+      },
+      "then": {
+        "required": ["color_modes"],
+        "properties": {
+          "color_modes": {"contains": {"enum": ["RGB", "RGBW"]}}
+        }
+      }
+    }
+  ]
+}

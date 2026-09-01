@@ -55,6 +55,10 @@ and the shared payload definitions in
 [`contracts/v1/light.schema.json`](contracts/v1/light.schema.json).
 Light brightness is an OpenHDO-defined integer intensity from 0 to 255; RGB
 channels use the same 0 to 255 range.
+Linker registration may include the vendor-neutral device capability descriptor
+from [`contracts/v1/light-capability.schema.json`](contracts/v1/light-capability.schema.json);
+pairing, protocol, DP mapping, vendor/model details, local keys, and real
+device connections remain exclusively Linker responsibilities.
 
 Compatibility rules:
 
