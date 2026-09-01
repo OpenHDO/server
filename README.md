@@ -4,10 +4,11 @@
 
 ## What it is
 
-- one server for local Raspberry Pi or remote VPS deployment;
+- one central server for local Raspberry Pi or remote VPS deployment, with connector processes wherever hardware is located;
 - SDK for smart devices and hardware integrations;
 - customizable dashboards and control panels;
 - desktop and edge agents for interacting with operating systems;
+- connector processes for Wi-Fi, Bluetooth, Zigbee, USB, serial, and other transports;
 - visual relationships between events, conditions, and actions;
 - plugins with explicit permissions and versioned contracts;
 - control from computers, phones, panels, and other clients.
@@ -20,7 +21,8 @@ The project is in the early design stage. The first milestone is a working C++ s
 server              base server, web panel host, API, and CLI
 server-dashboard    configurable dashboard module
 server-logic        node-based logic and flow module
-server-connector    connectors and device management module
+server-connector    server-side connector connection module
+connector           standalone device connector process
 sdk                 shared SDK repository, planned
 app                 additional client application repository, planned
 ```
@@ -31,6 +33,8 @@ app                 additional client application repository, planned
 openhdo-server   server executable
 openhdo-sdk      SDK package and development tools
 ohdocli          CLI for administration and diagnostics
+openhdo-connector connector executable
+chdocli          connector administration CLI
 openhdo-agent    planned desktop/edge agent
 ```
 
