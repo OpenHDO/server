@@ -1,33 +1,43 @@
+import type { Icon } from "@phosphor-icons/react/lib";
 import type { ComponentType } from "react";
 
-export type PanelItemKind = "builtin" | "custom";
-
-export type PanelItem = {
-  id: string;
-  label: string;
-  kind: PanelItemKind;
-  component: ComponentType;
+export type PanelModuleContext = {
+  navigate: (moduleId: string) => void;
+  api: {
+    request: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  };
 };
 
-const EmptyModule = () => null;
+export type PanelModuleProps = {
+  context: PanelModuleContext;
+};
 
-export const builtInModules: PanelItem[] = [
-  { id: "dashboards", label: "Dashboards", kind: "builtin", component: EmptyModule },
-  { id: "logic", label: "Logic", kind: "builtin", component: EmptyModule },
-  { id: "connector", label: "Connector", kind: "builtin", component: EmptyModule },
-  { id: "settings", label: "Settings", kind: "builtin", component: EmptyModule },
-];
+export type PanelModule = {
+  id: string;
+  label: string;
+  icon: Icon;
+  component: ComponentType<PanelModuleProps>;
+  order?: number;
+};
 
-const customModules: PanelItem[] = [];
+const modules = new Map<string, PanelModule>();
+const listeners = new Set<() => void>();
+let snapshot: PanelModule[] = [];
 
-// ponytail: build-time registry; add runtime discovery only with a real server module manifest.
-export function registerCustomModule(module: Omit<PanelItem, "kind">) {
-  if (!module.id || !module.label || builtInModules.some((item) => item.id === module.id) || customModules.some((item) => item.id === module.id)) {
+export function registerModule(module: PanelModule) {
+  if (!module.id || !module.label || modules.has(module.id)) {
     throw new Error(`Panel module id is invalid or already registered: ${module.id}`);
   }
-  customModules.push({ ...module, kind: "custom" });
+  modules.set(module.id, module);
+  snapshot = [...modules.values()].sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER));
+  listeners.forEach((listener) => listener());
 }
 
 export function getPanelModules() {
-  return [...builtInModules, ...customModules];
+  return snapshot;
+}
+
+export function subscribeToModules(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
 }
