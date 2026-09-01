@@ -12,9 +12,9 @@ export type PanelItem = {
 const EmptyModule = () => null;
 
 export const builtInModules: PanelItem[] = [
-  { id: "overview", label: "Overview", kind: "builtin", component: EmptyModule },
-  { id: "lights", label: "Lights", kind: "builtin", component: EmptyModule },
-  { id: "linkers", label: "Linkers", kind: "builtin", component: EmptyModule },
+  { id: "dashboards", label: "Dashboards", kind: "builtin", component: EmptyModule },
+  { id: "logic", label: "Logic", kind: "builtin", component: EmptyModule },
+  { id: "connector", label: "Connector", kind: "builtin", component: EmptyModule },
   { id: "settings", label: "Settings", kind: "builtin", component: EmptyModule },
 ];
 
