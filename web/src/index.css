@@ -6,6 +6,7 @@
   --color-accent-muted: #70d6a2;
   --font-sans: "Google Sans", "Google Sans Text", ui-sans-serif, system-ui, sans-serif;
   --font-brand: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --breakpoint-wide: 90rem;
 }
 
 :root {

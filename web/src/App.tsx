@@ -1,11 +1,58 @@
+import { useState } from "react";
+import { getPanelModules, settingsItem, type PanelItem } from "./modules/registry";
+
+const panelModules = getPanelModules();
+const panelItems = [...panelModules, settingsItem];
+
 export default function App() {
+  const [activeId, setActiveId] = useState(panelItems[0].id);
+  const activeItem = panelItems.find((item) => item.id === activeId) ?? panelItems[0];
+  const ActiveModule = activeItem.component;
+
   return (
-    <main className="grid min-h-screen place-items-center bg-[#0a0a0a] px-6 text-slate-100">
-      <img
-        src="/admin/brand/OpenHDO-green.png"
-        alt="OpenHDO"
-        className="h-20 w-20 sm:h-24 sm:w-24"
-      />
-    </main>
+    <div className="min-h-screen bg-[#0a0a0a] text-slate-100">
+      <header className="flex h-16 items-center border-b border-neutral-800 px-4 min-[390px]:px-5 md:px-6 wide:px-8">
+        <div className="flex items-center gap-3">
+          <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-8 w-8" />
+          <span className="font-brand text-lg tracking-tight">Admin</span>
+        </div>
+      </header>
+
+      <div className="flex flex-col md:grid md:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_1fr] wide:grid-cols-[15rem_1fr]">
+        <aside className="border-b border-neutral-800 px-4 py-3 min-[390px]:px-5 md:border-b-0 md:border-r md:px-3 md:py-5 wide:px-4" aria-label="Panel navigation">
+          <div className="flex gap-1 overflow-x-auto md:h-full md:flex-col">
+            <nav className="flex shrink-0 gap-1 md:flex-col" aria-label="Modules">
+              {panelModules.map((item) => (
+                <ModuleLink key={item.id} item={item} activeId={activeId} onSelect={setActiveId} />
+              ))}
+            </nav>
+            <nav className="ml-auto flex shrink-0 border-l border-neutral-800 pl-2 md:ml-0 md:mt-auto md:flex-col md:border-l-0 md:border-t md:pt-4" aria-label="System">
+              <ModuleLink item={settingsItem} activeId={activeId} onSelect={setActiveId} />
+            </nav>
+          </div>
+        </aside>
+
+        <main className="min-w-0 px-4 py-6 min-[390px]:px-5 md:px-8 md:py-8 wide:px-12" aria-labelledby="module-title">
+          <h1 id="module-title" className="text-2xl font-medium tracking-tight">{activeItem.label}</h1>
+          <ActiveModule />
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function ModuleLink({ item, activeId, onSelect }: { item: PanelItem; activeId: string; onSelect: (id: string) => void }) {
+  const active = item.id === activeId;
+  return (
+    <button
+      type="button"
+      aria-current={active ? "page" : undefined}
+      onClick={() => onSelect(item.id)}
+      className={`flex shrink-0 items-center rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-50 ${
+        active ? "bg-accent/10 text-accent-muted" : "text-neutral-400 hover:bg-neutral-900 hover:text-neutral-100"
+      }`}
+    >
+      {item.label}
+    </button>
   );
 }
