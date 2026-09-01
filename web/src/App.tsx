@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { getPanelModules, settingsItem, type PanelItem } from "./modules/registry";
+import { getPanelModules, type PanelItem } from "./modules/registry";
 
-const panelModules = getPanelModules();
-const panelItems = [...panelModules, settingsItem];
+const panelItems = getPanelModules();
 
 export default function App() {
   const [activeId, setActiveId] = useState(panelItems[0].id);
@@ -14,7 +13,7 @@ export default function App() {
       <header className="flex h-16 items-center border-b border-neutral-800 px-4 min-[390px]:px-5 md:px-6 wide:px-8">
         <div className="flex items-center gap-3">
           <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-8 w-8" />
-          <span className="font-brand text-lg tracking-tight">Admin</span>
+          <span className="font-brand text-lg font-bold tracking-tight">Admin</span>
         </div>
       </header>
 
@@ -22,18 +21,14 @@ export default function App() {
         <aside className="border-b border-neutral-800 px-4 py-3 min-[390px]:px-5 md:border-b-0 md:border-r md:px-3 md:py-5 wide:px-4" aria-label="Panel navigation">
           <div className="flex gap-1 overflow-x-auto md:h-full md:flex-col">
             <nav className="flex shrink-0 gap-1 md:flex-col" aria-label="Modules">
-              {panelModules.map((item) => (
+              {panelItems.map((item) => (
                 <ModuleLink key={item.id} item={item} activeId={activeId} onSelect={setActiveId} />
               ))}
-            </nav>
-            <nav className="ml-auto flex shrink-0 border-l border-neutral-800 pl-2 md:ml-0 md:mt-auto md:flex-col md:border-l-0 md:border-t md:pt-4" aria-label="System">
-              <ModuleLink item={settingsItem} activeId={activeId} onSelect={setActiveId} />
             </nav>
           </div>
         </aside>
 
-        <main className="min-w-0 px-4 py-6 min-[390px]:px-5 md:px-8 md:py-8 wide:px-12" aria-labelledby="module-title">
-          <h1 id="module-title" className="text-2xl font-medium tracking-tight">{activeItem.label}</h1>
+        <main className="min-w-0 px-4 py-6 min-[390px]:px-5 md:px-8 md:py-8 wide:px-12" aria-label={`${activeItem.label} module`}>
           <ActiveModule />
         </main>
       </div>

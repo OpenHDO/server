@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
 
-export type PanelItemKind = "builtin" | "custom" | "system";
+export type PanelItemKind = "builtin" | "custom";
 
 export type PanelItem = {
   id: string;
@@ -15,14 +15,8 @@ export const builtInModules: PanelItem[] = [
   { id: "overview", label: "Overview", kind: "builtin", component: EmptyModule },
   { id: "lights", label: "Lights", kind: "builtin", component: EmptyModule },
   { id: "linkers", label: "Linkers", kind: "builtin", component: EmptyModule },
+  { id: "settings", label: "Settings", kind: "builtin", component: EmptyModule },
 ];
-
-export const settingsItem: PanelItem = {
-  id: "settings",
-  label: "Settings",
-  kind: "system",
-  component: EmptyModule,
-};
 
 const customModules: PanelItem[] = [];
 
