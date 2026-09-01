@@ -12,16 +12,26 @@
 - plugins with explicit permissions and versioned contracts;
 - control from computers, phones, panels, and other clients.
 
-The project is in the early design stage. The first milestone is a working C++ backend and plugin contract. A React-based dashboard and panel SDK will follow as a separate client layer.
+The project is in the early design stage. The first milestone is a working C++ server with a configurable web panel, CLI, and extension contracts. React will be used for the panel implementation when frontend work begins.
 
-## Components
+## Repositories
 
 ```text
-openhdo-server   central runtime and API
-openhdo-sdk      SDK for integrations and extensions
+server              base server, web panel host, API, and CLI
+server-dashboard    configurable dashboard module
+server-logic        node-based logic and flow module
+server-connector    physical and location connector module
+sdk                 shared SDK repository, planned
+app                 additional client application repository, planned
+```
+
+## Runtime tools
+
+```text
+openhdo-server   server executable
+openhdo-sdk      SDK package and development tools
 ohdocli          CLI for administration and diagnostics
 openhdo-agent    planned desktop/edge agent
-openhdo-panel    planned web dashboard and panel SDK
 ```
 
 The initial server is a modular monolith. Separate processes are introduced only where isolation, permissions, crash containment, or independent updates make them useful.

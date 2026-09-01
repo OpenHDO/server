@@ -6,44 +6,105 @@ This document describes the planned architecture and implementation direction. T
 
 ## Product model
 
-OpenHDO has one central control plane and multiple clients and extensions around it:
+OpenHDO has one central control plane and configurable server modules around it. The base `server` repository contains the runtime, API, CLI, and web panel host. Module repositories provide focused capabilities that can be enabled and configured from the server panel:
 
 ```text
-                         +------------------+
-                         |  OpenHDO Panel   |
-                         |  future React UI |
-                         +---------+--------+
-                                   |
-+-------------+          +---------v---------+          +----------------+
-|   ohdocli   +---------->  openhdo-server   <----------+ openhdo-agent  |
-| admin/diag  |          | central runtime   |          | OS/edge access |
-+-------------+          +----+---------+----+
-                              |         |
-                    +---------v-+     +-v----------+
-                    | SQLite    |     | Plugins    |
-                    | state     |     | processes  |
-                    +-----------+     +------------+
+                         +----------------------------+
+                         | configurable web panel    |
+                         | served by `server`         |
+                         +-------------+--------------+
+                                       |
++-------------+          +-------------v-------------+          +----------------+
+|   ohdocli   +---------->          server            <----------+ openhdo-agent  |
+| admin/diag  |          | openhdo-server + API       |          | OS/edge access |
++-------------+          | panel host + module host  |          +----------------+
+                          +-----+----------+----------+
+                                |          |
+                    +-----------v--+   +---v-----------+
+                    | SQLite state |   | module/plugin |
+                    | and config   |   | processes     |
+                    +--------------+   +---------------+
 ```
 
-The server owns the shared state and orchestration rules. Clients display state or submit commands. Integrations translate between OpenHDO contracts and external devices or services.
+The server owns shared state and orchestration rules. The web panel and CLI are clients of the same server API. Module repositories contribute capabilities through stable contracts; they are not automatically separate microservices.
+
+## Repository layout
+
+The workspace root is a folder for multiple independent repositories, not a repository itself:
+
+```text
+HomeProtocol/
+├── server/              base server, web panel host, API, and `ohdocli`
+├── server-dashboard/    configurable dashboard module
+├── server-logic/        node-based logic and flow module
+├── server-connector/    physical and location connector module
+├── sdk/                 shared SDK repository
+└── app/                 additional client application repository
+```
+
+Only `server/` exists in the initial workspace. The other directories represent planned repositories and can be added independently when their first implementation is ready.
 
 ## Components
 
-### `openhdo-server`
+### `server` / `openhdo-server`
 
-The central deployable C++ process. It exposes the public API, stores configuration and state, evaluates flows, dispatches commands, and coordinates plugins and agents.
+The base repository and central deployable C++ process. It contains:
+
+- the core runtime, API, persistence, and orchestration;
+- the configurable web panel host;
+- `ohdocli` for administration and diagnostics;
+- the module and plugin host;
+- shared contracts used by server modules and external clients.
+
+The web panel is a configurable control surface, not a separate source of truth. It uses the same API and permissions model as the CLI and other clients. React is the planned implementation technology for the web UI.
 
 The first version is a modular monolith: the server has clear internal boundaries but does not split every boundary into a networked microservice. This keeps local deployment simple and avoids distributed-systems overhead before it is justified.
 
-### `openhdo-sdk`
+### `server-dashboard`
 
-The SDK for building device integrations, agents, panels, and other extensions.
+The configurable dashboard module. It defines the user-facing dashboard model and the pieces that can be arranged from the server panel:
 
-The initial SDK direction is C++-first because the runtime is C++, while the plugin boundary remains language-neutral. A plugin should be able to run as a separate process and communicate through a documented versioned contract rather than depending on server internals.
+- pages, views, layouts, and navigation;
+- widgets and control cards;
+- device and flow views;
+- user-specific or role-specific visibility;
+- saved panel configuration and reusable layouts.
+
+The base `server` repository provides the panel host and API integration. `server-dashboard` provides the dashboard-specific module contract and implementation.
+
+### `server-logic`
+
+The node-based logic module for connecting system behavior. It represents automation as a graph of nodes, ports, and connections:
+
+- event and state input nodes;
+- conditions and transformations;
+- command and action nodes;
+- timers, schedules, and delays;
+- execution status and error paths.
+
+The module should allow logic to be created and edited from the server panel, stored as data, validated, and executed by the server runtime without recompiling the core.
+
+### `server-connector`
+
+The connector module for configuring physical and location-based access to devices. A connector represents a connection boundary such as:
+
+- a room, home, office, workshop, or other location;
+- a local network or remote site;
+- a Raspberry Pi, gateway, or edge machine;
+- USB, Bluetooth, serial, TCP, or another transport;
+- the credentials and policies required to access that location.
+
+Connectors make it possible to manage devices in different places through one server. They describe how the server reaches a device group; device-specific behavior is supplied by integrations and the SDK.
+
+### `sdk` / `openhdo-sdk`
+
+The SDK for building device integrations, connector implementations, agents, panels, and other extensions.
+
+The initial SDK direction is C++-first because the runtime is C++, while the plugin boundary remains language-neutral. A module or plugin should be able to run as a separate process and communicate through a documented versioned contract rather than depending on server internals.
 
 ### `ohdocli`
 
-The command-line client for administration, diagnostics, configuration, migrations, and scripted operation. It is a client of `openhdo-server`, not an internal server module.
+The command-line client for administration, diagnostics, configuration, migrations, and scripted operation. It is part of the base `server` product and a client of `openhdo-server`, not an internal server module.
 
 ### `openhdo-agent` — planned
 
@@ -57,13 +118,40 @@ A separately running desktop or edge process for capabilities that should not li
 
 The agent can connect to a local server or a remote server, subject to authentication and permissions.
 
-### `openhdo-panel` — planned
+### `app` — planned
 
-A React-based web client and future panel SDK. It will consume the same server API as the CLI and other clients. The frontend is intentionally not part of the first backend milestone.
+An additional client application repository for native or specialized clients. It will use the public server API and will not duplicate the server's state or orchestration logic.
+
+## Configurable modules in the server panel
+
+The web panel is the main place where the server is assembled and configured. Modules should appear as first-class sections with their own settings, status, permissions, and user-facing tools.
+
+Every module can contribute a small, explicit surface to the panel:
+
+- settings and configuration forms;
+- status, health, and diagnostics;
+- pages, widgets, and control views;
+- entities, commands, and events exposed to other modules;
+- permissions and required capabilities;
+- import/export of module configuration.
+
+The first modules are:
+
+1. **Dashboard** (`server-dashboard`) — configure pages, layouts, widgets, navigation, and control views.
+2. **Logic** (`server-logic`) — create and edit node graphs that connect events, conditions, transformations, and actions between devices and services.
+3. **Connector** (`server-connector`) — configure physical and location-based connection units for homes, rooms, offices, gateways, Raspberry Pis, remote sites, and transports.
+
+Modules are configured from the server panel, but their state remains part of the server's versioned configuration model. The panel is an interface for managing modules; it is not a separate orchestration engine.
 
 ## Server boundaries
 
-The initial server contains these logical services:
+The initial `server` repository contains these logical services. Product modules use these boundaries without turning each one into a separate microservice:
+
+```text
+server-dashboard   panel host, API, view/configuration model
+server-logic       core orchestrator, flow engine, event/command model
+server-connector   registry, plugin host, agents, transport boundaries
+```
 
 ### Core orchestrator
 
@@ -106,6 +194,11 @@ The exact schema is not finalized, but the first model is expected to revolve ar
 - **Command** — a requested operation with validated arguments;
 - **Action** — a flow step that invokes a command or produces another effect;
 - **Flow** — triggers, conditions, actions, and execution policy;
+- **Node** — a logic module unit with typed inputs and outputs;
+- **Port** — an input or output of a node;
+- **Connection** — an edge connecting compatible node ports;
+- **Location** — a physical or logical place containing devices or connectors;
+- **Connector** — a configured access boundary for a location, gateway, or transport;
 - **Agent** — a trusted client that exposes local OS or hardware capabilities;
 - **Plugin** — an isolated extension that contributes devices, capabilities, events, commands, or services.
 
@@ -195,7 +288,7 @@ The first deployment target is a single server process. Clustering, distributed 
 - **SQLite** — initial embedded persistence;
 - **HTTP/WebSocket** — client and live-update APIs;
 - **JSON Schema** — validation and compatibility contracts;
-- **React** — planned dashboard and panel SDK;
+- **React** — planned implementation technology for the server web panel and dashboard module;
 - **language-neutral RPC contract** — plugin process boundary.
 
 C++ is a runtime choice, not a restriction on the ecosystem. Integrations should be able to use other languages once the external protocol is stable.
@@ -208,7 +301,7 @@ C++ is a runtime choice, not a restriction on the ecosystem. Integrations should
 - configuration and structured logging;
 - typed commands and events;
 - minimal registry;
-- `ohdocli` connection and diagnostics;
+- configurable panel host and `ohdocli` connection/diagnostics;
 - in-memory execution path.
 
 ### Phase 2: persistent server
@@ -229,25 +322,34 @@ C++ is a runtime choice, not a restriction on the ecosystem. Integrations should
 - one reference integration;
 - `openhdo-sdk` starter API.
 
-### Phase 4: local machine integration
+### Phase 4: configurable server modules
+
+- `server-dashboard` module contract;
+- `server-logic` node graph and execution model;
+- `server-connector` location and transport model;
+- module settings, permissions, health, and configuration persistence;
+- module contributions to the server panel.
+
+### Phase 5: local machine integration
 
 - `openhdo-agent`;
 - process and OS capabilities;
 - local hardware bridge;
 - remote-agent authentication and policy.
 
-### Phase 5: user interfaces
+### Phase 6: client applications
 
-- React dashboard;
-- device and capability views;
-- flow editor;
-- panel SDK;
+- React implementation of the server web panel;
+- dashboard views and widgets;
+- visual logic editor;
+- connector and location configuration;
+- `app` client applications;
 - live logs and execution inspection.
 
 ## Non-goals for the first version
 
 - splitting every logical module into a microservice;
-- building a full React frontend before the server contracts stabilize;
+- building a full React interface before the server contracts stabilize;
 - requiring a cloud account for local use;
 - allowing plugins direct access to internal storage;
 - supporting every device protocol before the extension boundary works;
