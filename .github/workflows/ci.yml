@@ -9,17 +9,30 @@ permissions:
   contents: read
 
 jobs:
-  cpp:
-    name: C++ / CMake / CTest
+  server:
+    name: Python server / CMake compatibility / tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Configure
-        run: cmake --preset ci
-      - name: Build
-        run: cmake --build --preset ci
-      - name: Test
-        run: ctest --preset ci
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install server dependencies
+        working-directory: python
+        run: python -m pip install -e ".[dev]"
+      - name: Python tests
+        working-directory: python
+        run: python -m unittest discover -s tests -v
+      - name: Import and entrypoint checks
+        working-directory: python
+        run: |
+          python -m compileall -q openhdo_server
+          openhdo-server --check
+      - name: CMake compatibility checks
+        run: |
+          cmake --preset ci
+          cmake --build --preset ci
+          ctest --preset ci
 
   web:
     name: Web / TypeScript / Vite
@@ -36,16 +49,3 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run build
-
-  python:
-    name: Python SDK / unittest
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: python
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python -m unittest discover -s tests -v

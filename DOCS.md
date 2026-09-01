@@ -6,117 +6,154 @@ repository ownership, naming, deployment roles, and roadmap live in the
 
 ## Responsibility
 
-`openhdo-server` is the central control plane. It is responsible for:
+`openhdo-server` is the central control plane. It owns:
 
-- shared domain state and orchestration rules;
-- commands, events, policies, and execution history;
-- the registry of devices, entities, capabilities, Linker sessions, agents,
-  and plugins;
-- the public HTTP API and WebSocket stream when those milestones land;
-- persistence and migrations;
-- authentication, authorization, audit records, and structured logs;
-- hosting the built-in admin/configuration panel and server-side Logic and
-  Linker modules.
+- canonical abstract domain state and orchestration rules;
+- commands, events, policies, and execution outcomes;
+- registries of devices, capabilities, and Linker sessions;
+- the versioned HTTP API and WebSocket paths;
+- the configuration/authentication boundary and structured logs;
+- persistence seams for a later durable repository;
+- the built-in server admin/configuration panel host.
 
-The server must not contain radio, USB, serial, or device-specific protocol
-drivers. Those run in an isolated `openhdo-linker` process close to the
-hardware.
+The server must not contain radio, USB, serial, pairing, vendor/model, device
+protocol, DP mapping, credential, or real-device connection logic. Those remain
+in the isolated `openhdo-linker` process close to the hardware. A Linker
+registration contributes only the vendor-neutral manifest and Light capability
+defined by `contracts/v1/`.
+
+The reusable `server-dashboard` module is a client-facing consumer of server
+contracts. It is not the server's admin/configuration panel and is not owned by
+this repository.
 
 ## Runtime direction
 
-Python is the primary backend/runtime direction for the server, and React owns
-the web panels. The existing C++ runtime/foundation remains buildable as a
-frozen baseline but must not gain new API or runtime features. Rewriting the
-server runtime and API in Python is a separate follow-up task; the v1
-contracts remain language-neutral during that migration.
+Python is the only active server runtime/executable target. The implementation
+is in `python/openhdo_server/` and uses FastAPI/Starlette, uvicorn, and typed
+Pydantic models. React owns the panel source in `web/`; a production build is
+served at `/admin` when `web/dist/` is present.
+
+The C++ files under `include/` and `src/` are frozen reference material during
+the migration. The root CMake presets remain a compatibility check for Python
+syntax and tests only; they do not build or install C++ targets.
 
 ## Repository layout
 
 ```text
-include/openhdo/     public C++ headers
-src/core/            reusable runtime library
-src/server/          openhdo-server entry point
-src/cli/             ohdocli entry point
-tests/               CTest smoke checks
-contracts/v1/        language-neutral JSON contracts
-web/                 built-in server admin/configuration panel shell
-python/              stdlib-only protocol SDK reference
+contracts/v1/        language-neutral envelope, Linker, and Light contracts
+python/openhdo_server active Python runtime, models, repository, and service
+python/tests/         runtime and contract-focused tests
+web/                  server-owned React admin/configuration panel source
+include/, src/, tests/ frozen C++ reference material, not active runtime
+docs/adr/             architectural decisions
 ```
 
-The server owns the source of truth. The built-in admin panel in `web/`, CLI,
-Linkers, agents, and plugins are clients or isolated extensions; none may
-treat dashboard state or SQLite tables as a public API. The reusable
-`server-dashboard` client module is a separate client-facing consumer of the
-server contracts. It is not the server's admin/configuration panel and is not
-owned by this repository.
+The server owns the source of truth. The built-in admin panel, reusable client
+dashboards, Linkers, agents, and plugins use the public contracts; none may
+treat panel state or storage tables as an API. The Python runtime starts with a
+process-local repository and does not seed fake lights. A Light exists only
+after a Linker sends `link.register` with its abstract capability.
 
-## Public contract
+## Public v1 boundary
 
-The first stable contract is the versioned envelope in
+The common envelope is defined in
 [`contracts/v1/envelope.schema.json`](contracts/v1/envelope.schema.json).
-Linker registration is represented by
+Linker registration uses
 [`contracts/v1/link-manifest.schema.json`](contracts/v1/link-manifest.schema.json)
-and the `link.register` example. The RGB Light slice is defined by
+and the `link.register` example. The RGB Light slice uses
 [`contracts/v1/light-command.schema.json`](contracts/v1/light-command.schema.json),
 [`contracts/v1/light-state.schema.json`](contracts/v1/light-state.schema.json),
-and the shared payload definitions in
-[`contracts/v1/light.schema.json`](contracts/v1/light.schema.json).
-Light brightness is an OpenHDO-defined integer intensity from 0 to 255; RGB
-channels use the same 0 to 255 range.
-Linker registration may include the vendor-neutral device capability descriptor
-from [`contracts/v1/light-capability.schema.json`](contracts/v1/light-capability.schema.json);
-pairing, protocol, DP mapping, vendor/model details, local keys, and real
-device connections remain exclusively Linker responsibilities.
+and [`contracts/v1/light.schema.json`](contracts/v1/light.schema.json).
+
+Light brightness and RGB channels are OpenHDO-defined integers in the inclusive
+range `0..255`. Capabilities may advertise `RGB`, `RGBW`, or `CCT` where
+applicable; no vendor/model/local-key fields are valid server capability data.
+
+The active runtime exposes these transport adapters over the same v1 model:
+
+- `GET /api/v1/health` is the unauthenticated liveness response;
+- `GET /api/v1/lights` and `GET /api/v1/lights/{id}` read canonical state;
+- `POST /api/v1/lights/{id}/commands` accepts a complete typed command
+  envelope;
+- `PATCH /api/v1/lights/{id}` adapts one `power`, `brightness`, or `rgb_color`
+  change plus an idempotency key into that same typed command path;
+- `WS /api/v1/linkers/{linker_id}` accepts `link.register`,
+  `light.state.reported`, and `command.result` envelopes;
+- `WS /api/v1/events` publishes canonical `light.updated` event envelopes.
+
+The Linker WS is a message endpoint, not a device protocol adapter. The server
+validates the v1 envelope, checks that the message source matches the connected
+Linker identity, and updates only the abstract Light registry. Commands are
+forwarded only to a currently connected Linker. A successful HTTP response
+with status `202` means `accepted` for forwarding; it is not a claim that the
+physical device applied the command. The later Linker `command.result` uses
+the forwarded `light.command` envelope `id` as its `correlation_id`. Applied
+results carrying state produce `light.updated` with the same correlation ID.
+
+The process-local event observer is intentionally transient and bounded. It
+does not promise durable delivery; persistence, replay, retry, and a dead-letter
+channel belong behind an explicit future reliability requirement.
 
 Compatibility rules:
 
 1. Reject unsupported protocol major versions before processing payloads.
-2. Keep message names stable and use `correlation_id` for command results.
-3. Ignore unknown optional fields; breaking required changes require a new
-   major contract.
+2. Keep message names stable and use the envelope `id` as the correlation
+   target for its reply/result.
+3. Ignore unknown optional fields at a compatible external boundary; breaking
+   required changes require a new major contract.
 4. Add a schema or payload definition, example, and compatibility test before
    making a message public.
+5. Keep authorization, validation, logging, and test seams at every runtime
+   boundary.
 
-The schema defines logical messages, not a transport. The eventual remote
-transport must provide encryption, authentication, message-size limits,
-timeouts, and reconnect behavior.
+The schema defines logical messages, not a remote deployment transport. Any
+future remote transport must provide encryption, authentication, size limits,
+timeouts, reconnect behavior, and an explicit delivery policy.
 
 ## Module boundaries
 
-- `web/` is the server-owned admin/configuration panel and is developed in
-  this repository.
-- `server-logic` contributes validated flows, nodes, conditions, and actions.
-- `server-linker` contributes Linker sessions, device inventory, health, and
-  command routing.
+- `python/openhdo_server` owns configuration, authorization, canonical Light
+  state/capability, command service, repository, and transport adapters.
+- `web/` is the server-owned admin/configuration panel and is served only from
+  this server's optional `web/dist/` build under `/admin`.
+- `server-linker` owns Linker sessions and all vendor/model/pairing/protocol/
+  DP/real-device work.
+- `server-logic` may contribute validated flows, nodes, conditions, and
+  actions through a later server-side seam.
+- `server-dashboard` remains a reusable client dashboard and is not imported,
+  copied, or hosted as the server admin panel.
 
-The reusable `server-dashboard` module is a client dashboard, not a server
-module. Server-side modules are not automatic microservices. A separate
-process is justified by isolation, permissions, crash containment, or
-independent update requirements.
+## Configuration and authorization
 
-## Development baseline
+Configuration is versioned (`OPENHDO_CONFIG_VERSION=1`) and loaded through the
+typed `ServerSettings` boundary. Defaults bind to `127.0.0.1:8000`; a
+non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. When configured,
+control HTTP routes, Linker WS, event WS, and `/admin` require a bearer token.
+Startup, shutdown, registration, forwarding, state, and result paths emit
+structured JSON log events without logging credentials or vendor data.
 
-Use the CMake presets described in [README.md](README.md). CI runs with
-warnings-as-errors where supported and executes CTest, the web production
-build, and Python protocol tests. Keep the core dependency-light until a
-dependency buys a concrete security, portability, or correctness guarantee.
+## Development checks
 
-## Current and next milestones
+```bash
+cd python
+python -m pip install -e ".[dev]"
+python -m unittest discover -s tests -v
+python -m compileall -q openhdo_server
+openhdo-server --check
+```
 
-Implemented: C++ runtime/CLI foundation, versioned configuration loader,
-structured JSON-line logging, validated in-memory device registry, typed
-command/event path, protocol v1 schemas, built-in admin panel shell, Python
-reference SDK, CMake quality gates, and CI.
+The optional panel build is:
 
-Next server milestones: the Python backend/API migration, then a wire adapter
-for the command/event path, HTTP API, WebSocket events, SQLite persistence,
-and a small authentication baseline.
-The current local path is intentionally transport- and persistence-free; these
-should be added behind the public contracts rather than leaking internal
-classes or storage tables. See
-[`docs/adr/0001-phase-one-control-plane.md`](docs/adr/0001-phase-one-control-plane.md)
+```bash
+cd web
+npm ci
+npm run build
+```
+
+After the build, run the server and open `/admin`. Without `web/dist/index.html`,
+the server returns a clear `admin_panel_unavailable` 404 instead of serving
+placeholder data. Root CMake `dev`/`ci` presets run only the Python compile and
+unittest compatibility checks.
+
+See [`docs/adr/0001-phase-one-control-plane.md`](docs/adr/0001-phase-one-control-plane.md)
 for the Phase 1 boundary choices.
-
-The initial configuration adapter reads `OPENHDO_CONFIG_VERSION`,
-`OPENHDO_INSTANCE_NAME`, and `OPENHDO_LOG_LEVEL`. All three are optional and
-use the same validated loader as future file or CLI adapters.

@@ -3,15 +3,30 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openhdo-sdk"
+name = "openhdo-server"
 version = "0.1.0"
-description = "Minimal, dependency-free Python SDK for OpenHDO protocol clients"
+description = "OpenHDO Python server runtime"
 requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.115,<1",
+  "pydantic>=2.9,<3",
+  "uvicorn[standard]>=0.34,<1",
+]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
 ]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.28,<1",
+  "pytest>=8,<10",
+  "websockets>=13,<17",
+]
+
+[project.scripts]
+openhdo-server = "openhdo_server.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,72 +1,83 @@
 # OpenHDO Server
 
-The OpenHDO Server owns shared state, orchestration, the public API,
-authentication policy, persistence, and the server-side module host. Python
-is the chosen primary backend/runtime and React owns the web panels; the
-existing C++20 foundation is a frozen compatibility/build baseline and is not
-being extended.
+The OpenHDO Server is the Python control-plane runtime. It owns canonical
+abstract device state, orchestration, public API, authorization policy,
+configuration, persistence boundaries, and structured logs. React provides the
+server-owned admin panel. The reusable `server-dashboard` module is a separate
+client consumer and is not this panel.
 
-The server is intentionally a modular monolith. Hardware access belongs in
-the separate [OpenHDO Linker](https://github.com/OpenHDO/linker) process; web
-clients and CLIs use the same public server contracts.
+Hardware access belongs in the separate [OpenHDO Linker](https://github.com/OpenHDO/linker)
+process. Linker owns vendor/model details, pairing, protocol and DP mapping,
+credentials, and real-device connections; the server receives only the
+vendor-neutral contracts in `contracts/v1/`.
 
-## What is in this repository
+## Repository contents
 
-- `openhdo-server` — central server executable;
-- `ohdocli` — administration and diagnostics CLI;
-- `openhdo_core` — frozen C++ foundation library;
-- `contracts/v1/` — versioned language-neutral protocol contracts;
-- `web/` — the built-in React + TypeScript + Tailwind + shadcn-style server
-  admin/configuration panel shell;
-- `python/` — dependency-free protocol SDK and the future primary runtime
-  location.
+- `python/openhdo_server/` — active FastAPI/Starlette + uvicorn runtime;
+- `contracts/v1/` — versioned language-neutral envelope and Light contracts;
+- `web/` — server-owned React admin/configuration panel source;
+- `include/`, `src/`, `tests/` — frozen C++ foundation kept as non-runtime
+  reference material during the Python migration.
 
-The current release is a buildable foundation. The Python backend/API
-migration is a separate follow-up; no new C++ API/runtime work is part of that
-migration. The long-running HTTP/WebSocket service, SQLite store,
-authentication, and live Linker session are planned server milestones, not
-hidden mock implementations.
+The current Python vertical slice provides health and Light inventory HTTP
+endpoints, abstract Light command forwarding, Linker registration/state/result
+WebSockets, transient `light.updated` events, validated environment
+configuration, and structured JSON logging. It does not invent device data:
+lights enter the registry through a real Linker registration message.
 
-## Build from source
+## Run the server
 
-Requirements: CMake 3.24+, a C++20 compiler, and Ninja or another supported
-generator.
+Requirements: Python 3.11+.
 
 ```bash
-cmake --preset dev
-cmake --build --preset dev
-ctest --preset dev
-build/dev/openhdo-server --check
-build/dev/ohdocli --version
+cd python
+python -m venv .venv
+python -m pip install -e ".[dev]"
+openhdo-server --check
+python -m unittest discover -s tests -v
+openhdo-server
 ```
 
-On Windows without Ninja, use `dev-mingw` instead of `dev`.
+The default bind is local-only (`127.0.0.1:8000`). Supported configuration
+variables are `OPENHDO_CONFIG_VERSION`, `OPENHDO_INSTANCE_NAME`,
+`OPENHDO_HOST`, `OPENHDO_PORT`, `OPENHDO_LOG_LEVEL`, and `OPENHDO_API_TOKEN`.
+Binding to a non-local host requires the token. Control HTTP and WebSocket
+surfaces require `Authorization: Bearer <token>` when configured.
 
-For the built-in server admin/configuration panel:
+The v1 API currently includes:
+
+- `GET /api/v1/health`;
+- `GET /api/v1/lights` and `GET /api/v1/lights/{id}`;
+- `PATCH /api/v1/lights/{id}` for one ergonomic abstract `power`, `brightness`
+  (`0..255`), or `rgb_color` change plus an idempotency key;
+- `POST /api/v1/lights/{id}/commands` for a complete v1 command envelope;
+- `WS /api/v1/events` for `light.updated`;
+- `WS /api/v1/linkers/{linker_id}` for `link.register`, state reports, and
+  command results.
+
+## Server admin panel
+
+Build the server-owned panel from `web/`:
 
 ```bash
 cd web
 npm ci
 npm run build
-npm run dev
 ```
 
-For the Python reference SDK:
+When `web/dist/index.html` exists, the Python runtime serves it under
+`/admin`. The build is optional; if the distribution is absent, `/admin`
+returns a clear `admin_panel_unavailable` response and the API remains usable.
+No dashboard or device data is embedded in the panel build.
 
-```bash
-cd python
-python -m unittest discover -s tests -v
-```
+## Checks
 
-## Engineering checks
+The Python package declares production dependencies and a `dev` extra. Run
+the focused suite directly with `python -m unittest discover -s tests -v`.
+The CMake presets are compatibility checks only: they compile-check Python and
+run the same unittest suite; they no longer build or install C++ executables.
+The CI contract also runs the React/TypeScript production build.
 
-The CI contract is defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml):
-CMake/CTest, TypeScript/Vite, and Python unittest must stay green. Public
-messages belong under `contracts/v1/` and require an example plus a
-compatibility test.
-
-## Documentation
-
-- [Server technical docs](DOCS.md)
-- [Project overview and architecture](https://github.com/OpenHDO/about)
-- [First-run guide](https://github.com/OpenHDO/get-started)
+Normative messages and payloads belong under `contracts/v1/`; each public
+addition requires an example and compatibility test. See [technical
+documentation](DOCS.md) and the [Phase 1 ADR](docs/adr/0001-phase-one-control-plane.md).
