@@ -174,8 +174,8 @@ function LoadingScreen() {
 function NotFoundPage() {
   return (
     <main className="grid min-h-screen place-items-center bg-[#0a0a0a] px-5 text-slate-100">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="flex items-center gap-3">
+      <div className="w-full max-w-sm space-y-6 text-center">
+        <div className="flex items-center justify-center gap-3">
           <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-9 w-9" />
           <span className="font-brand text-xl font-bold tracking-tight">OpenHDO</span>
         </div>
