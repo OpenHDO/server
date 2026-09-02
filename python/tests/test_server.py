@@ -116,7 +116,7 @@ class ServerApiTests(unittest.TestCase):
             )
             self.assertEqual(preflight.status_code, 200)
             self.assertEqual(preflight.headers["access-control-allow-origin"], "http://localhost:5173")
-            self.assertEqual(preflight.headers["access-control-allow-methods"], "GET, PATCH, POST")
+            self.assertEqual(preflight.headers["access-control-allow-methods"], "GET, PATCH, POST, DELETE")
             self.assertNotIn("access-control-allow-credentials", preflight.headers)
             self.assertEqual(
                 client.get("/api/v1/health", headers={"Origin": "http://localhost:5173"}).headers[
@@ -373,6 +373,8 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertIn("<html", response.text.lower())
                 self.assertEqual(client.get("/auth").status_code, 200)
+                self.assertEqual(client.get("/admin/unknown-page").status_code, 200)
+                self.assertEqual(client.get("/auth/unknown-page").status_code, 200)
             else:
                 self.assertEqual(response.status_code, 404)
                 self.assertEqual(response.json()["error"], "admin_panel_unavailable")

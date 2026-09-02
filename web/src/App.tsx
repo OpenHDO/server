@@ -1,6 +1,7 @@
 import Avatar from "boring-avatars";
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { GearSix } from "@phosphor-icons/react/GearSix";
+import { House } from "@phosphor-icons/react/House";
 import { SignIn } from "@phosphor-icons/react/SignIn";
 import { SignOut } from "@phosphor-icons/react/SignOut";
 import { UserPlus } from "@phosphor-icons/react/UserPlus";
@@ -13,6 +14,7 @@ import SettingsView from "./builtins/settings";
 import UsersView from "./builtins/users";
 
 type AuthMode = "login" | "register";
+type PageRoute = "admin" | "auth" | "not-found";
 type AuthState =
   | { status: "loading"; user: null }
   | { status: "guest"; user: null }
@@ -28,11 +30,17 @@ type PanelNavigationItem = {
 };
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
-const authPage = window.location.pathname === "/auth" || window.location.pathname === "/auth/";
+const pageRoute = resolveRoute(window.location.pathname);
 const builtInItems: PanelNavigationItem[] = [
   { id: "users", label: "Users", icon: UsersThree, component: UsersView, requiredRoles: ["admin"], order: 40 },
   { id: "settings", label: "Settings", icon: GearSix, component: SettingsView, requiredRoles: ["admin"], order: 50 },
 ];
+
+function resolveRoute(pathname: string): PageRoute {
+  if (pathname === "/admin" || pathname === "/admin/") return "admin";
+  if (pathname === "/auth" || pathname === "/auth/") return "auth";
+  return "not-found";
+}
 
 function cookieValue(name: string) {
   const prefix = `${name}=`;
@@ -68,6 +76,7 @@ export default function App() {
   const [loginPending, setLoginPending] = useState(false);
 
   useEffect(() => {
+    if (pageRoute === "not-found") return;
     let mounted = true;
     requestFromModule("/api/v1/auth/me")
       .then(async (response) => {
@@ -91,7 +100,11 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (authPage && auth.status === "authenticated") window.location.replace(nextPath());
+    if (pageRoute === "auth" && auth.status === "authenticated") window.location.replace(nextPath());
+  }, [auth.status]);
+
+  useEffect(() => {
+    if (pageRoute === "admin" && auth.status === "guest") window.location.replace("/");
   }, [auth.status]);
 
   async function login(username: string, password: string) {
@@ -121,8 +134,9 @@ export default function App() {
     setAuth({ status: "guest", user: null });
   }
 
+  if (pageRoute === "not-found") return <NotFoundPage />;
   if (auth.status === "loading") return <LoadingScreen />;
-  if (authPage) {
+  if (pageRoute === "auth") {
     if (auth.status === "authenticated") return <LoadingScreen />;
     return (
       <AuthPage
@@ -135,6 +149,9 @@ export default function App() {
       />
     );
   }
+  if (auth.status === "guest") {
+    return <LoadingScreen />;
+  }
   return <PanelShell user={auth.status === "authenticated" ? auth.user : null} onLogin={() => openAuthPage("login")} onLogout={logout} />;
 }
 
@@ -143,6 +160,30 @@ function LoadingScreen() {
     <div className="grid min-h-screen place-items-center bg-[#0a0a0a]">
       <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-10 w-10 animate-pulse" />
     </div>
+  );
+}
+
+function NotFoundPage() {
+  return (
+    <main className="grid min-h-screen place-items-center bg-[#0a0a0a] px-5 text-slate-100">
+      <div className="w-full max-w-sm space-y-6">
+        <div className="flex items-center gap-3">
+          <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-9 w-9" />
+          <span className="font-brand text-xl font-bold tracking-tight">OpenHDO</span>
+        </div>
+        <div className="space-y-2">
+          <p className="font-brand text-6xl font-bold tracking-tight text-accent">404</p>
+          <h1 className="font-brand text-2xl font-bold tracking-tight">Page not found</h1>
+        </div>
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-200 transition hover:border-neutral-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <House size={18} aria-hidden="true" />
+          Go home
+        </a>
+      </div>
+    </main>
   );
 }
 
@@ -276,7 +317,9 @@ function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; o
     <div className="min-h-screen bg-[#0a0a0a] text-slate-100">
       <header className="flex h-16 items-center justify-between border-b border-neutral-800 px-4 min-[390px]:px-5 md:px-6 wide:px-8">
         <div className="flex items-center gap-3">
-          <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-8 w-8" />
+          <a href="/" aria-label="OpenHDO home" className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-8 w-8" />
+          </a>
           <span className="font-brand text-lg font-bold tracking-tight">Admin</span>
         </div>
         <MiniProfile user={user} onLogout={onLogout} />

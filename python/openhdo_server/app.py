@@ -15,6 +15,7 @@ from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import TypeAdapter, ValidationError
+from starlette.exceptions import HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
@@ -59,6 +60,22 @@ _SOURCE_ADAPTER = TypeAdapter(Source)
 _SESSION_COOKIE = "openhdo_session"
 _CSRF_COOKIE = "openhdo_csrf"
 _SESSION_TTL_SECONDS = 8 * 60 * 60
+
+
+class AdminStaticFiles(StaticFiles):
+    """Serve the panel entry for unknown client-side routes, not missing assets."""
+
+    def __init__(self, *args, index_path: Path, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._index_path = index_path
+
+    async def get_response(self, path, scope):
+        try:
+            return await super().get_response(path, scope)
+        except HTTPException as error:
+            if error.status_code == 404 and "." not in Path(path).name:
+                return FileResponse(self._index_path)
+            raise
 
 
 @dataclass(frozen=True)
@@ -140,8 +157,8 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             CORSMiddleware,
             allow_origins=list(settings.cors_origins),
             allow_credentials=False,
-            allow_methods=["GET", "PATCH", "POST"],
-            allow_headers=["Authorization", "Content-Type", "Accept", "X-OpenHDO-Source"],
+            allow_methods=["GET", "PATCH", "POST", "DELETE"],
+            allow_headers=["Authorization", "Content-Type", "Accept", "X-OpenHDO-Source", "X-OpenHDO-CSRF"],
         )
     application.state.settings = settings
     application.state.service = service
@@ -480,11 +497,20 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                 await discovery_service.linker_disconnected(linker_id)
 
     if application.state.admin_panel_available:
-        application.mount("/admin", StaticFiles(directory=str(web_dist), html=True), name="server-admin")
+        application.mount(
+            "/admin",
+            AdminStaticFiles(directory=str(web_dist), html=True, index_path=admin_index),
+            name="server-admin",
+        )
 
         @application.api_route("/auth", methods=["GET"], include_in_schema=False)
         @application.api_route("/auth/", methods=["GET"], include_in_schema=False)
         async def auth_panel(_: Request) -> FileResponse:
+            return FileResponse(admin_index)
+
+        @application.api_route("/auth/{path:path}", methods=["GET"], include_in_schema=False)
+        async def auth_panel_route(_: Request, path: str) -> FileResponse:
+            del path
             return FileResponse(admin_index)
     else:
         @application.api_route("/admin", methods=["GET"], include_in_schema=False)
