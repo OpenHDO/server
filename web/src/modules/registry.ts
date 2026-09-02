@@ -1,10 +1,24 @@
 import type { Icon } from "@phosphor-icons/react/lib";
 import type { ComponentType } from "react";
 
+export type PanelUserRole = "admin" | "operator" | "viewer";
+
+export type PanelAuthUser = {
+  id: string;
+  username: string;
+  role: PanelUserRole;
+  active: boolean;
+  created_at: string;
+};
+
 export type PanelModuleContext = {
   navigate: (moduleId: string) => void;
   api: {
     request: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  };
+  auth: {
+    user: PanelAuthUser;
+    logout: () => Promise<void>;
   };
 };
 
@@ -17,6 +31,7 @@ export type PanelModule = {
   label: string;
   icon: Icon;
   component: ComponentType<PanelModuleProps>;
+  requiredRoles?: PanelUserRole[];
   order?: number;
 };
 

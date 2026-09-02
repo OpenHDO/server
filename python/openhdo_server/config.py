@@ -26,6 +26,9 @@ class ServerSettings(BaseModel):
     log_level: Literal["trace", "debug", "info", "warn", "error"] = "info"
     api_token: str | None = Field(default=None, min_length=8)
     cors_origins: tuple[str, ...] = ()
+    auth_db_path: str = "openhdo-auth.sqlite3"
+    admin_username: str | None = Field(default=None, min_length=1, max_length=64)
+    admin_password: str | None = Field(default=None, min_length=8, max_length=256)
 
     @field_validator("instance_name")
     @classmethod
@@ -76,6 +79,12 @@ class ServerSettings(BaseModel):
         return origins
 
     @model_validator(mode="after")
+    def require_bootstrap_pair(self) -> "ServerSettings":
+        if (self.admin_username is None) != (self.admin_password is None):
+            raise ValueError("admin_username and admin_password must be configured together")
+        return self
+
+    @model_validator(mode="after")
     def require_token_for_non_local_host(self) -> "ServerSettings":
         if self.host not in {"127.0.0.1", "localhost", "::1"} and self.api_token is None:
             raise ValueError("api_token is required when host is not local")
@@ -90,6 +99,9 @@ _ENVIRONMENT_KEYS = {
     "OPENHDO_LOG_LEVEL": "log_level",
     "OPENHDO_API_TOKEN": "api_token",
     "OPENHDO_CORS_ORIGINS": "cors_origins",
+    "OPENHDO_AUTH_DB": "auth_db_path",
+    "OPENHDO_ADMIN_USERNAME": "admin_username",
+    "OPENHDO_ADMIN_PASSWORD": "admin_password",
 }
 
 

@@ -39,18 +39,23 @@ openhdo-server
 
 The default bind is local-only (`127.0.0.1:8000`). Supported configuration
 variables are `OPENHDO_CONFIG_VERSION`, `OPENHDO_INSTANCE_NAME`,
-`OPENHDO_HOST`, `OPENHDO_PORT`, `OPENHDO_LOG_LEVEL`, and `OPENHDO_API_TOKEN`.
+`OPENHDO_HOST`, `OPENHDO_PORT`, `OPENHDO_LOG_LEVEL`, `OPENHDO_API_TOKEN`,
+`OPENHDO_AUTH_DB`, `OPENHDO_ADMIN_USERNAME`, and `OPENHDO_ADMIN_PASSWORD`.
+Set the last two together on first startup to create the initial admin user;
+the password is hashed and the SQLite auth database is kept outside the web
+build. `OPENHDO_AUTH_DB` defaults to `openhdo-auth.sqlite3`.
 For a standalone React app on another local origin, set
 `OPENHDO_CORS_ORIGINS` to a comma-separated list of exact origins, for
 example `http://localhost:5173,https://dashboard.example`. CORS is disabled
 when it is unset; configured origins use explicit `GET`, `PATCH`, and `POST`
 methods and the `Authorization`, `Content-Type`, `Accept`, and
 `X-OpenHDO-Source` headers. Credentials are not allowed and `*` is rejected.
-Binding to a non-local host requires the token. Control HTTP and WebSocket
-surfaces require `Authorization: Bearer <token>` when configured. The `/admin`
-static shell is intentionally available without the token so it can present a
-token field; its protected API requests send the bearer from tab-scoped
-`sessionStorage`, and no token is bundled or logged.
+Binding to a non-local host requires the token. Browser control HTTP requests
+use an HttpOnly, SameSite session cookie plus a CSRF header; native Linker and
+backward-compatible service clients may continue using
+`Authorization: Bearer <token>` when configured. The `/admin` static shell is
+available without credentials and immediately shows the login screen; API
+boundaries remain protected.
 When the origin allowlist is configured, `/api/v1/events` requires an allowed
 `Origin` header and closes with code `4403` if it is missing or disallowed.
 `/api/v1/linkers/{linker_id}` also rejects a present but disallowed `Origin`
@@ -60,6 +65,10 @@ allowlist, local WebSocket behavior is unchanged.
 The v1 API currently includes:
 
 - `GET /api/v1/health`;
+- `POST /api/v1/auth/login`, `GET /api/v1/auth/me`, and
+  `POST /api/v1/auth/logout` for browser sessions;
+- `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, and
+  `PATCH /api/v1/admin/users/{id}` for admin-only user and role management;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}`;
 - `PATCH /api/v1/lights/{id}` for one ergonomic abstract `power`, `brightness`
   (`0..255`), or `rgb_color` change plus an idempotency key;
@@ -91,9 +100,9 @@ npm run build
 When `web/dist/index.html` exists, the Python runtime serves it under
 `/admin`. The build is optional; if the distribution is absent, `/admin`
 returns a clear `admin_panel_unavailable` response and the API remains usable.
-With `OPENHDO_API_TOKEN`, open the shell, enter the bearer token in the
-session-only field, and then use the protected API. No token, dashboard, or
-device data is embedded in the panel build.
+Configure `OPENHDO_ADMIN_USERNAME` and `OPENHDO_ADMIN_PASSWORD` before the
+first start, then sign in at `/admin`. No password or session token is
+embedded in the panel build.
 
 ## Checks
 

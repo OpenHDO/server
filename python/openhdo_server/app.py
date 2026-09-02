@@ -3,23 +3,28 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 import hmac
 import json
 import logging
 from pathlib import Path
+from typing import Literal
 from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import TypeAdapter, ValidationError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from .config import ServerSettings, load_settings
 from .connections import LightEventHub, LinkerConnections
+from .auth import AuthConflict, AuthStore, UserRecord
 from .logging import configure_logging, log_event
 from .models import (
+    AuthResponse,
+    AuthUser,
     BrightnessCommandEnvelope,
     CommandResultEnvelope,
     DiscoveryCandidateEnvelope,
@@ -35,11 +40,15 @@ from .models import (
     LinkRegisterEnvelope,
     LinkerEnvelope,
     LightsResponse,
+    LoginRequest,
     PowerCommandEnvelope,
     ProblemResponse,
     RgbColorCommandEnvelope,
     LightView,
     Source,
+    UserCreateRequest,
+    UserUpdateRequest,
+    UsersResponse,
     utc_now,
 )
 from .repository import InMemoryDiscoverySessionRepository, InMemoryLightRepository
@@ -47,6 +56,16 @@ from .service import DiscoveryService, LightService, ServiceError
 
 
 _SOURCE_ADAPTER = TypeAdapter(Source)
+_SESSION_COOKIE = "openhdo_session"
+_CSRF_COOKIE = "openhdo_csrf"
+_SESSION_TTL_SECONDS = 8 * 60 * 60
+
+
+@dataclass(frozen=True)
+class Principal:
+    kind: Literal["user", "token", "legacy"]
+    role: str
+    user: UserRecord | None = None
 
 
 def _authorization_value(headers) -> str | None:
@@ -59,6 +78,13 @@ def _authorization_value(headers) -> str | None:
 def _token_matches(headers, expected: str | None) -> bool:
     if expected is None:
         return True
+    provided = _authorization_value(headers)
+    return provided is not None and hmac.compare_digest(provided, expected)
+
+
+def _api_token_matches(headers, expected: str | None) -> bool:
+    if expected is None:
+        return False
     provided = _authorization_value(headers)
     return provided is not None and hmac.compare_digest(provided, expected)
 
@@ -77,6 +103,8 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     discovery_repository = InMemoryDiscoverySessionRepository()
     connections = LinkerConnections()
     events = LightEventHub()
+    auth_store = AuthStore(settings.auth_db_path)
+    auth_store.ensure_bootstrap_admin(settings.admin_username, settings.admin_password)
     service = LightService(
         repository=repository,
         transport=connections,
@@ -99,9 +127,12 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             "server.startup",
             {"runtime": "python", "instance_name": settings.instance_name, "host": settings.host, "port": settings.port},
         )
-        yield
-        await discovery_service.close()
-        log_event(logger, logging.INFO, "server.shutdown", {"instance_name": settings.instance_name})
+        try:
+            yield
+        finally:
+            await discovery_service.close()
+            auth_store.close()
+            log_event(logger, logging.INFO, "server.shutdown", {"instance_name": settings.instance_name})
 
     application = FastAPI(title="OpenHDO Server", version="0.1.0", lifespan=lifespan)
     if settings.cors_origins:
@@ -116,6 +147,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     application.state.service = service
     application.state.discovery_service = discovery_service
     application.state.connections = connections
+    application.state.auth_store = auth_store
     web_dist = Path(__file__).resolve().parents[2] / "web" / "dist"
     admin_index = web_dist / "index.html"
     application.state.admin_panel_available = admin_index.is_file()
@@ -137,9 +169,126 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             ).model_dump(mode="json"),
         )
 
-    async def require_authorization(request: Request) -> None:
-        if not _token_matches(request.headers, settings.api_token):
+    def principal_for(request: Request) -> Principal | None:
+        if _api_token_matches(request.headers, settings.api_token):
+            return Principal(kind="token", role="admin")
+        user = auth_store.session(request.cookies.get(_SESSION_COOKIE))
+        if user is not None:
+            return Principal(kind="user", role=user.role, user=user)
+        if settings.api_token is None and not auth_store.has_users():
+            return Principal(kind="legacy", role="admin")
+        return None
+
+    async def require_authorization(request: Request) -> Principal:
+        principal = principal_for(request)
+        if principal is None:
             raise ServiceError(401, "authorization_required", "a valid bearer token is required")
+        return principal
+
+    async def require_operator(request: Request) -> Principal:
+        principal = await require_authorization(request)
+        if principal.role not in {"admin", "operator"}:
+            raise ServiceError(403, "forbidden", "operator role is required")
+        return principal
+
+    async def require_admin(request: Request) -> Principal:
+        principal = await require_authorization(request)
+        if principal.kind == "legacy" or principal.role != "admin":
+            raise ServiceError(403, "forbidden", "admin role is required")
+        return principal
+
+    async def require_csrf(request: Request) -> Principal:
+        principal = await require_authorization(request)
+        if principal.kind == "user" and request.method not in {"GET", "HEAD", "OPTIONS"}:
+            if not auth_store.csrf_matches(
+                request.cookies.get(_SESSION_COOKIE), request.headers.get("x-openhdo-csrf")
+            ):
+                raise ServiceError(403, "csrf_required", "a valid CSRF token is required")
+        return principal
+
+    def session_user(request: Request) -> UserRecord:
+        user = auth_store.session(request.cookies.get(_SESSION_COOKIE))
+        if user is None:
+            raise ServiceError(401, "authorization_required", "a valid admin session is required")
+        return user
+
+    @application.post("/api/v1/auth/login", response_model=AuthResponse)
+    async def login(request: Request, credentials: LoginRequest, response: Response) -> AuthResponse:
+        user = auth_store.authenticate(credentials.username, credentials.password)
+        if user is None:
+            raise ServiceError(401, "invalid_credentials", "username or password is invalid")
+        session_token, csrf_token = auth_store.create_session(user, ttl_seconds=_SESSION_TTL_SECONDS)
+        secure = request.url.scheme == "https"
+        response.set_cookie(
+            _SESSION_COOKIE,
+            session_token,
+            max_age=_SESSION_TTL_SECONDS,
+            httponly=True,
+            secure=secure,
+            samesite="strict",
+            path="/",
+        )
+        response.set_cookie(
+            _CSRF_COOKIE,
+            csrf_token,
+            max_age=_SESSION_TTL_SECONDS,
+            httponly=False,
+            secure=secure,
+            samesite="strict",
+            path="/",
+        )
+        return AuthResponse(user=_auth_user(user))
+
+    @application.get("/api/v1/auth/me", response_model=AuthResponse)
+    async def auth_me(request: Request) -> AuthResponse:
+        return AuthResponse(user=_auth_user(session_user(request)))
+
+    @application.post("/api/v1/auth/logout", status_code=204, dependencies=[Depends(require_csrf)])
+    async def logout(request: Request, response: Response) -> Response:
+        auth_store.revoke_session(request.cookies.get(_SESSION_COOKIE))
+        response.delete_cookie(_SESSION_COOKIE, path="/")
+        response.delete_cookie(_CSRF_COOKIE, path="/")
+        response.status_code = 204
+        return response
+
+    @application.get(
+        "/api/v1/admin/users",
+        response_model=UsersResponse,
+        dependencies=[Depends(require_admin)],
+    )
+    async def list_users() -> UsersResponse:
+        return UsersResponse(users=[_auth_user(user) for user in auth_store.list_users()])
+
+    @application.post(
+        "/api/v1/admin/users",
+        response_model=AuthUser,
+        status_code=201,
+        dependencies=[Depends(require_admin), Depends(require_csrf)],
+    )
+    async def create_user(user: UserCreateRequest) -> AuthUser:
+        try:
+            created = auth_store.create_user(user.username, user.password, user.role)
+        except AuthConflict as error:
+            raise ServiceError(409, "auth_conflict", str(error)) from error
+        return _auth_user(created)
+
+    @application.patch(
+        "/api/v1/admin/users/{user_id}",
+        response_model=AuthUser,
+        dependencies=[Depends(require_admin), Depends(require_csrf)],
+    )
+    async def update_user(user_id: str, change: UserUpdateRequest) -> AuthUser:
+        try:
+            updated = auth_store.update_user(
+                user_id,
+                role=change.role,
+                active=change.active,
+                password=change.password,
+            )
+        except AuthConflict as error:
+            status_code = 409 if "last active admin" in str(error) else 404
+            raise ServiceError(status_code, "auth_conflict", str(error)) from error
+        return _auth_user(updated)
 
     @application.get("/api/v1/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
@@ -164,7 +313,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         "/api/v1/lights/{light_id}/commands",
         response_model=CommandResultEnvelope,
         status_code=202,
-        dependencies=[Depends(require_authorization)],
+        dependencies=[Depends(require_operator), Depends(require_csrf)],
     )
     async def submit_command(light_id: Identifier, command: LightCommandEnvelope) -> CommandResultEnvelope:
         if command.payload.light_id != light_id:
@@ -175,7 +324,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         "/api/v1/lights/{light_id}",
         response_model=CommandResultEnvelope,
         status_code=202,
-        dependencies=[Depends(require_authorization)],
+        dependencies=[Depends(require_operator), Depends(require_csrf)],
     )
     async def patch_light(
         request: Request,
@@ -238,7 +387,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         "/api/v1/discovery/sessions",
         response_model=DiscoverySessionResponse,
         status_code=202,
-        dependencies=[Depends(require_authorization)],
+        dependencies=[Depends(require_operator), Depends(require_csrf)],
     )
     async def start_discovery(request: DiscoveryStartRequest) -> DiscoverySessionResponse:
         return await discovery_service.start(request)
@@ -344,6 +493,16 @@ def _validate_linker_message(raw_message: object) -> LinkerEnvelope:
     from pydantic import TypeAdapter
 
     return TypeAdapter(LinkerEnvelope).validate_python(raw_message)
+
+
+def _auth_user(user: UserRecord) -> AuthUser:
+    return AuthUser(
+        id=user.id,
+        username=user.username,
+        role=user.role,
+        active=user.active,
+        created_at=user.created_at,
+    )
 
 
 app = create_app()

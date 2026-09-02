@@ -137,12 +137,16 @@ timeouts, reconnect behavior, and an explicit delivery policy.
 
 Configuration is versioned (`OPENHDO_CONFIG_VERSION=1`) and loaded through the
 typed `ServerSettings` boundary. Defaults bind to `127.0.0.1:8000`; a
-non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. When configured,
-control HTTP routes, Linker WS, and event WS require a bearer token. The
-static `/admin` shell is deliberately readable without that token so the panel
-can collect it safely; the panel stores it only in tab-scoped `sessionStorage`
-and sends it on protected API requests. The token is not logged or included in
-the build.
+non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. Browser sessions
+are backed by the server-owned SQLite auth store (`OPENHDO_AUTH_DB`, default
+`openhdo-auth.sqlite3`). Set `OPENHDO_ADMIN_USERNAME` and
+`OPENHDO_ADMIN_PASSWORD` together on first startup to bootstrap the initial
+admin. Passwords are stored as scrypt hashes; sessions are revocable and are
+sent to the browser in an HttpOnly, SameSite cookie with a separate CSRF
+cookie/header check for state-changing requests.
+The static `/admin` shell remains readable without credentials so it can show
+the login screen. Native Linker and backward-compatible service clients may
+continue using a bearer token when `OPENHDO_API_TOKEN` is configured.
 For a standalone React client on a separate origin,
 `OPENHDO_CORS_ORIGINS` accepts a comma-separated allowlist of exact `http` or
 `https` origins. CORS middleware is installed only when this list is non-empty,

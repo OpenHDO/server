@@ -19,6 +19,7 @@ DiscoveryTimeout = Annotated[StrictInt, Field(ge=1, le=60)]
 ColorMode = Literal["RGB", "RGBW", "CCT"]
 DiscoverySessionStatus = Literal["running", "completed", "failed"]
 DiscoveryCompletionStatus = Literal["completed", "failed"]
+UserRole = Literal["admin", "operator", "viewer"]
 
 
 def utc_now() -> datetime:
@@ -295,6 +296,45 @@ class HealthResponse(StrictModel):
     runtime: Literal["python"] = "python"
     instance_name: str
     linkers_connected: int = Field(ge=0)
+
+
+class LoginRequest(StrictModel):
+    username: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=8, max_length=256)
+
+
+class AuthUser(StrictModel):
+    id: str
+    username: str
+    role: UserRole
+    active: bool
+    created_at: str
+
+
+class AuthResponse(StrictModel):
+    user: AuthUser
+
+
+class UserCreateRequest(StrictModel):
+    username: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$")
+    password: str = Field(min_length=8, max_length=256)
+    role: UserRole = "viewer"
+
+
+class UserUpdateRequest(StrictModel):
+    role: UserRole | None = None
+    active: StrictBool | None = None
+    password: str | None = Field(default=None, min_length=8, max_length=256)
+
+    @model_validator(mode="after")
+    def require_change(self) -> "UserUpdateRequest":
+        if self.role is None and self.active is None and self.password is None:
+            raise ValueError("at least one user field must change")
+        return self
+
+
+class UsersResponse(StrictModel):
+    users: list[AuthUser]
 
 
 class LightsResponse(StrictModel):
