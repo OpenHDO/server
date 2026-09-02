@@ -149,9 +149,7 @@ export default function App() {
     return (
       <AuthPage
         initialMode={new URLSearchParams(window.location.search).get("mode") === "register" ? "register" : "login"}
-        onLogin={async (username, password) => {
-          if (await login(username, password)) window.location.assign(nextPath());
-        }}
+        onLogin={login}
         loginPending={loginPending}
         loginError={loginError}
       />
@@ -212,7 +210,7 @@ function AuthPage({
   loginError,
 }: {
   initialMode: AuthMode;
-  onLogin: (username: string, password: string) => Promise<void>;
+  onLogin: (username: string, password: string) => Promise<boolean>;
   loginPending: boolean;
   loginError: string | null;
 }) {
@@ -221,21 +219,18 @@ function AuthPage({
   const [password, setPassword] = useState("");
   const [registerPending, setRegisterPending] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const busy = loginPending || registerPending;
 
   function changeMode(next: AuthMode) {
     setMode(next);
     setPassword("");
     setRegisterError(null);
-    setSuccess(null);
     window.history.replaceState({}, "", `/auth?mode=${next}&next=${encodeURIComponent(nextPath())}`);
   }
 
   async function register() {
     setRegisterPending(true);
     setRegisterError(null);
-    setSuccess(null);
     try {
       const response = await requestFromModule("/api/v1/auth/register", {
         method: "POST",
@@ -243,10 +238,7 @@ function AuthPage({
         body: JSON.stringify({ username, password }),
       });
       if (!response.ok) throw new Error(await responseError(response));
-      setMode("login");
-      setPassword("");
-      setSuccess("Account created");
-      window.history.replaceState({}, "", `/auth?mode=login&next=${encodeURIComponent(nextPath())}`);
+      if (!(await onLogin(username, password))) throw new Error("Unable to sign in");
     } catch (error) {
       setRegisterError(error instanceof Error ? error.message : "Unable to create account");
     } finally {
@@ -298,7 +290,6 @@ function AuthPage({
           </label>
         </div>
         {(mode === "login" ? loginError : registerError) && <p className="border-y border-red-900/70 py-3 text-sm text-red-300">{mode === "login" ? loginError : registerError}</p>}
-        {success && <p className="border-y border-neutral-800 py-3 text-sm text-accent-muted">{success}</p>}
         <button
           type="submit"
           disabled={busy}
