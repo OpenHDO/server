@@ -293,21 +293,21 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
       <article>
       <header className="flex items-center gap-3 px-3 py-3 min-[390px]:px-4">
         <button type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded} className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-accent/10 text-accent-muted"><PlugsConnected size={18} aria-hidden="true" /></span>
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-accent/10 text-neutral-300"><PlugsConnected size={18} aria-hidden="true" /></span>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-neutral-100">{linker.name}</h2>
             <p className="truncate text-xs text-neutral-500">{linker.host && linker.port ? `${linker.host}:${linker.port}` : linker.id} · {linker.devices.length} {linker.devices.length === 1 ? "device" : "devices"}</p>
           </div>
-          <CaretDown size={16} className={`ml-auto shrink-0 text-neutral-500 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
+          <CaretDown size={16} className={`ml-auto shrink-0 text-neutral-300 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
         </button>
         <div className="flex shrink-0 items-center gap-1">
-          <div className="hidden items-center gap-2 px-1 text-neutral-500 min-[390px]:flex">
+          <div className="hidden items-center gap-2 px-1 text-neutral-300 min-[390px]:flex">
             {linker.transports.map((transport) => <span key={transport} title={transport} aria-label={transport}>{transport === "wifi" ? <WifiHigh size={16} aria-hidden="true" /> : <PlugsConnected size={16} aria-hidden="true" />}</span>)}
             {linker.version && <span title={`Version ${linker.version}`} aria-label={`Version ${linker.version}`}><Tag size={15} aria-hidden="true" /></span>}
           </div>
-          <span className={`grid h-8 w-8 place-items-center ${linker.available ? "text-accent-muted" : "text-neutral-600"}`} role="img" aria-label={linker.available ? "Linker available" : "Linker offline"} title={linker.available ? "Available" : "Offline"}>{linker.available ? <CheckCircle weight="fill" size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}</span>
+          <span className={`grid h-8 w-8 place-items-center ${linker.available ? "text-accent-muted" : "text-neutral-400"}`} role="img" aria-label={linker.available ? "Linker available" : "Linker offline"} title={linker.available ? "Available" : "Offline"}>{linker.available ? <CheckCircle weight="fill" size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}</span>
           <div className="relative" ref={menuRef}>
-            <button type="button" onClick={() => setMenuOpen((current) => !current)} aria-label={`Actions for ${linker.name}`} aria-expanded={menuOpen} aria-haspopup="menu" className="grid h-8 w-8 place-items-center rounded-md text-neutral-400 transition hover:bg-neutral-900 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"><DotsThreeVertical size={18} aria-hidden="true" /></button>
+            <button type="button" onClick={() => setMenuOpen((current) => !current)} aria-label={`Actions for ${linker.name}`} aria-expanded={menuOpen} aria-haspopup="menu" className="grid h-8 w-8 place-items-center rounded-md text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"><DotsThreeVertical size={18} aria-hidden="true" /></button>
             {menuOpen && <div role="menu" className="absolute right-0 top-10 z-20 min-w-44 rounded-md border border-neutral-800 bg-neutral-950 p-1 shadow-2xl">
               <button type="button" role="menuitem" disabled={!linker.available || scanState === "loading"} onClick={() => { setMenuOpen(false); void scan(); }} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40"><MagnifyingGlass size={17} aria-hidden="true" />Scan devices</button>
               {canManage && <>
