@@ -1,3 +1,4 @@
+import Avatar from "boring-avatars";
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { GearSix } from "@phosphor-icons/react/GearSix";
 import { SignIn } from "@phosphor-icons/react/SignIn";
@@ -312,7 +313,6 @@ function MiniProfile({ user, onLogout }: { user: PanelAuthUser | null; onLogout:
     }
   }
 
-  const initials = user ? avatarInitials(user.username) : null;
   return (
     <div className="relative">
       <button
@@ -323,7 +323,7 @@ function MiniProfile({ user, onLogout }: { user: PanelAuthUser | null; onLogout:
         onClick={() => setOpen((current) => !current)}
         className="flex items-center gap-2 rounded-full p-1 text-neutral-300 transition hover:bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
-        {user ? <span className={`grid h-9 w-9 place-items-center rounded-full text-xs font-bold text-neutral-950 ${avatarColor(user.username)}`}>{initials}</span> : <span className="grid h-9 w-9 place-items-center rounded-full bg-neutral-800 text-neutral-400"><SignIn size={18} aria-hidden="true" /></span>}
+        {user ? <Avatar name={user.username} size={36} variant="beam" colors={avatarColors} title={false} className="rounded-full" /> : <span className="grid h-9 w-9 place-items-center rounded-full bg-neutral-800 text-neutral-400"><SignIn size={18} aria-hidden="true" /></span>}
         <CaretDown size={14} className={`hidden text-neutral-500 transition-transform min-[390px]:block ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
 
@@ -344,17 +344,7 @@ function MiniProfile({ user, onLogout }: { user: PanelAuthUser | null; onLogout:
   );
 }
 
-const avatarColors = ["bg-fuchsia-400", "bg-sky-400", "bg-amber-300", "bg-lime-400", "bg-violet-400"];
-
-function avatarColor(username: string) {
-  const total = [...username].reduce((sum, character) => sum + character.charCodeAt(0), 0);
-  return avatarColors[total % avatarColors.length];
-}
-
-function avatarInitials(username: string) {
-  const parts = username.trim().split(/[\s._-]+/).filter(Boolean);
-  return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : parts[0]?.slice(0, 2) ?? "?").toUpperCase();
-}
+const avatarColors = ["#e879f9", "#38bdf8", "#fcd34d", "#a3e635", "#a78bfa"];
 
 function ModuleLink({ item, activeId, onSelect }: { item: PanelNavigationItem; activeId: string | null; onSelect: (id: string) => void }) {
   const active = item.id === activeId;
