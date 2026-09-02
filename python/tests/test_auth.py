@@ -1,17 +1,49 @@
 from __future__ import annotations
 
 from pathlib import Path
+import sqlite3
 from tempfile import TemporaryDirectory
 import unittest
 
 from fastapi.testclient import TestClient
 
 from openhdo_server.app import create_app
+from openhdo_server.auth import AuthStore
 from openhdo_server.config import ServerSettings
 
 
 class AuthApiTests(unittest.TestCase):
-    def test_registration_creates_viewer_account(self) -> None:
+    def test_legacy_roles_are_migrated_to_user(self) -> None:
+        with TemporaryDirectory() as directory:
+            database_path = Path(directory) / "auth.sqlite3"
+            connection = sqlite3.connect(database_path)
+            connection.execute(
+                """
+                CREATE TABLE users (
+                    id TEXT PRIMARY KEY,
+                    username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                    password_hash TEXT NOT NULL,
+                    role TEXT NOT NULL CHECK (role IN ('admin', 'operator', 'viewer')),
+                    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.executemany(
+                "INSERT INTO users(id, username, password_hash, role, active, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+                [
+                    ("admin-id", "admin", "hash", "admin", "2026-01-01T00:00:00Z"),
+                    ("viewer-id", "viewer", "hash", "viewer", "2026-01-01T00:00:00Z"),
+                ],
+            )
+            connection.commit()
+            connection.close()
+
+            store = AuthStore(str(database_path))
+            self.assertEqual({user.username: user.role for user in store.list_users()}, {"admin": "admin", "viewer": "user"})
+            store.close()
+
+    def test_registration_creates_user_account(self) -> None:
         with TemporaryDirectory() as directory:
             settings = ServerSettings(
                 auth_db_path=str(Path(directory) / "auth.sqlite3"),
@@ -21,13 +53,13 @@ class AuthApiTests(unittest.TestCase):
             with TestClient(create_app(settings)) as client:
                 registered = client.post(
                     "/api/v1/auth/register",
-                    json={"username": "new-user", "password": "viewer-password"},
+                    json={"username": "new-user", "password": "user-password"},
                 )
                 self.assertEqual(registered.status_code, 201)
-                self.assertEqual(registered.json()["role"], "viewer")
+                self.assertEqual(registered.json()["role"], "user")
                 duplicate = client.post(
                     "/api/v1/auth/register",
-                    json={"username": "new-user", "password": "viewer-password"},
+                    json={"username": "new-user", "password": "user-password"},
                 )
                 self.assertEqual(duplicate.status_code, 409)
 
@@ -59,24 +91,40 @@ class AuthApiTests(unittest.TestCase):
                 self.assertEqual(client.get("/api/v1/auth/me").json()["user"]["username"], "admin")
 
                 csrf = client.cookies.get("openhdo_csrf")
-                missing_csrf = client.post(
-                    "/api/v1/admin/users",
-                    json={"username": "operator", "password": "operator-password", "role": "operator"},
+                registered = client.post(
+                    "/api/v1/auth/register",
+                    json={"username": "regular-user", "password": "user-password"},
                 )
-                self.assertEqual(missing_csrf.status_code, 403)
+                self.assertEqual(registered.status_code, 201)
+                user_id = registered.json()["id"]
+                self.assertEqual(len(client.get("/api/v1/admin/users").json()["users"]), 2)
+                self.assertEqual(
+                    client.post(
+                        "/api/v1/admin/users",
+                        json={"username": "manual-user", "password": "user-password"},
+                        headers={"X-OpenHDO-CSRF": csrf},
+                    ).status_code,
+                    405,
+                )
 
-                created = client.post(
-                    "/api/v1/admin/users",
-                    json={"username": "operator", "password": "operator-password", "role": "operator"},
+                promoted = client.patch(
+                    f"/api/v1/admin/users/{user_id}",
+                    json={"role": "admin"},
                     headers={"X-OpenHDO-CSRF": csrf},
                 )
-                self.assertEqual(created.status_code, 201)
-                operator_id = created.json()["id"]
-                self.assertEqual(len(client.get("/api/v1/admin/users").json()["users"]), 2)
+                self.assertEqual(promoted.status_code, 200)
+                self.assertEqual(promoted.json()["role"], "admin")
+                demoted = client.patch(
+                    f"/api/v1/admin/users/{user_id}",
+                    json={"role": "user"},
+                    headers={"X-OpenHDO-CSRF": csrf},
+                )
+                self.assertEqual(demoted.status_code, 200)
+                self.assertEqual(demoted.json()["role"], "user")
 
                 cannot_remove_last_admin = client.patch(
                     "/api/v1/admin/users/does-not-matter",
-                    json={"role": "viewer"},
+                    json={"role": "user"},
                     headers={"X-OpenHDO-CSRF": csrf},
                 )
                 self.assertEqual(cannot_remove_last_admin.status_code, 404)
@@ -85,21 +133,53 @@ class AuthApiTests(unittest.TestCase):
                 self.assertEqual(logout.status_code, 204)
                 self.assertEqual(client.get("/api/v1/auth/me").status_code, 401)
 
-                operator_login = client.post(
+                user_login = client.post(
                     "/api/v1/auth/login",
-                    json={"username": "operator", "password": "operator-password"},
+                    json={"username": "regular-user", "password": "user-password"},
                 )
-                self.assertEqual(operator_login.status_code, 200)
+                self.assertEqual(user_login.status_code, 200)
                 self.assertEqual(client.get("/api/v1/lights").status_code, 200)
                 self.assertEqual(client.get("/api/v1/admin/users").status_code, 403)
 
-                operator_csrf = client.cookies.get("openhdo_csrf")
-                demoted = client.patch(
-                    f"/api/v1/admin/users/{operator_id}",
-                    json={"role": "viewer"},
-                    headers={"X-OpenHDO-CSRF": operator_csrf},
+                user_csrf = client.cookies.get("openhdo_csrf")
+                forbidden_update = client.patch(
+                    f"/api/v1/admin/users/{user_id}",
+                    json={"role": "admin"},
+                    headers={"X-OpenHDO-CSRF": user_csrf},
                 )
-                self.assertEqual(demoted.status_code, 403)
+                self.assertEqual(forbidden_update.status_code, 403)
+
+    def test_admin_can_delete_user_but_not_last_admin(self) -> None:
+        with TemporaryDirectory() as directory:
+            settings = ServerSettings(
+                auth_db_path=str(Path(directory) / "auth.sqlite3"),
+                admin_username="admin",
+                admin_password="correct-password",
+            )
+            with TestClient(create_app(settings)) as client:
+                registered = client.post(
+                    "/api/v1/auth/register",
+                    json={"username": "to-delete", "password": "user-password"},
+                )
+                user_id = registered.json()["id"]
+                client.post(
+                    "/api/v1/auth/login",
+                    json={"username": "admin", "password": "correct-password"},
+                )
+                csrf = client.cookies.get("openhdo_csrf")
+                deleted = client.delete(
+                    f"/api/v1/admin/users/{user_id}",
+                    headers={"X-OpenHDO-CSRF": csrf},
+                )
+                self.assertEqual(deleted.status_code, 204)
+                self.assertEqual(client.get("/api/v1/admin/users").json()["users"][0]["username"], "admin")
+
+                admin_id = client.get("/api/v1/admin/users").json()["users"][0]["id"]
+                cannot_delete_last_admin = client.delete(
+                    f"/api/v1/admin/users/{admin_id}",
+                    headers={"X-OpenHDO-CSRF": csrf},
+                )
+                self.assertEqual(cannot_delete_last_admin.status_code, 409)
 
     def test_last_active_admin_cannot_be_removed(self) -> None:
         with TemporaryDirectory() as directory:

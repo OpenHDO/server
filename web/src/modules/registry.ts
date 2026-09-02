@@ -1,7 +1,7 @@
 import type { Icon } from "@phosphor-icons/react/lib";
 import type { ComponentType } from "react";
 
-export type PanelUserRole = "admin" | "operator" | "viewer";
+export type PanelUserRole = "admin" | "user";
 
 export type PanelAuthUser = {
   id: string;

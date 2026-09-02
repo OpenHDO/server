@@ -47,7 +47,6 @@ from .models import (
     RgbColorCommandEnvelope,
     LightView,
     Source,
-    UserCreateRequest,
     UserUpdateRequest,
     UsersResponse,
     utc_now,
@@ -186,10 +185,10 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             raise ServiceError(401, "authorization_required", "a valid bearer token is required")
         return principal
 
-    async def require_operator(request: Request) -> Principal:
+    async def require_user(request: Request) -> Principal:
         principal = await require_authorization(request)
-        if principal.role not in {"admin", "operator"}:
-            raise ServiceError(403, "forbidden", "operator role is required")
+        if principal.role not in {"admin", "user"}:
+            raise ServiceError(403, "forbidden", "user role is required")
         return principal
 
     async def require_admin(request: Request) -> Principal:
@@ -268,19 +267,6 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     async def list_users() -> UsersResponse:
         return UsersResponse(users=[_auth_user(user) for user in auth_store.list_users()])
 
-    @application.post(
-        "/api/v1/admin/users",
-        response_model=AuthUser,
-        status_code=201,
-        dependencies=[Depends(require_admin), Depends(require_csrf)],
-    )
-    async def create_user(user: UserCreateRequest) -> AuthUser:
-        try:
-            created = auth_store.create_user(user.username, user.password, user.role)
-        except AuthConflict as error:
-            raise ServiceError(409, "auth_conflict", str(error)) from error
-        return _auth_user(created)
-
     @application.patch(
         "/api/v1/admin/users/{user_id}",
         response_model=AuthUser,
@@ -298,6 +284,19 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             status_code = 409 if "last active admin" in str(error) else 404
             raise ServiceError(status_code, "auth_conflict", str(error)) from error
         return _auth_user(updated)
+
+    @application.delete(
+        "/api/v1/admin/users/{user_id}",
+        status_code=204,
+        dependencies=[Depends(require_admin), Depends(require_csrf)],
+    )
+    async def delete_user(user_id: str) -> Response:
+        try:
+            auth_store.delete_user(user_id)
+        except AuthConflict as error:
+            status_code = 409 if "last active admin" in str(error) else 404
+            raise ServiceError(status_code, "auth_conflict", str(error)) from error
+        return Response(status_code=204)
 
     @application.get("/api/v1/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
@@ -322,7 +321,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         "/api/v1/lights/{light_id}/commands",
         response_model=CommandResultEnvelope,
         status_code=202,
-        dependencies=[Depends(require_operator), Depends(require_csrf)],
+        dependencies=[Depends(require_user), Depends(require_csrf)],
     )
     async def submit_command(light_id: Identifier, command: LightCommandEnvelope) -> CommandResultEnvelope:
         if command.payload.light_id != light_id:
@@ -333,7 +332,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         "/api/v1/lights/{light_id}",
         response_model=CommandResultEnvelope,
         status_code=202,
-        dependencies=[Depends(require_operator), Depends(require_csrf)],
+        dependencies=[Depends(require_user), Depends(require_csrf)],
     )
     async def patch_light(
         request: Request,
@@ -396,7 +395,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         "/api/v1/discovery/sessions",
         response_model=DiscoverySessionResponse,
         status_code=202,
-        dependencies=[Depends(require_operator), Depends(require_csrf)],
+        dependencies=[Depends(require_user), Depends(require_csrf)],
     )
     async def start_discovery(request: DiscoveryStartRequest) -> DiscoverySessionResponse:
         return await discovery_service.start(request)

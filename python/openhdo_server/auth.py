@@ -14,7 +14,7 @@ import time
 from uuid import uuid4
 
 
-USER_ROLES = {"admin", "operator", "viewer"}
+USER_ROLES = {"admin", "user"}
 _SCRYPT_N = 2**15
 _SCRYPT_R = 8
 _SCRYPT_P = 1
@@ -58,13 +58,14 @@ class AuthStore:
         with self._lock:
             self._connection.execute("PRAGMA foreign_keys = ON")
             self._connection.execute("PRAGMA journal_mode = WAL")
+            self._migrate_legacy_roles()
             self._connection.executescript(
                 """
                 CREATE TABLE IF NOT EXISTS users (
                     id TEXT PRIMARY KEY,
                     username TEXT NOT NULL UNIQUE COLLATE NOCASE,
                     password_hash TEXT NOT NULL,
-                    role TEXT NOT NULL CHECK (role IN ('admin', 'operator', 'viewer')),
+                    role TEXT NOT NULL CHECK (role IN ('admin', 'user')),
                     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
                     created_at TEXT NOT NULL
                 );
@@ -184,7 +185,54 @@ class AuthStore:
     def register_user(self, username: str, password: str) -> UserRecord:
         if not self.has_users():
             raise AuthConflict("bootstrap admin is required before registration")
-        return self.create_user(username, password, "viewer")
+        return self.create_user(username, password, "user")
+
+    def delete_user(self, user_id: str) -> None:
+        with self._lock:
+            current = self._connection.execute(
+                "SELECT role, active FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+            if current is None:
+                raise AuthConflict("user does not exist")
+            if current["role"] == "admin" and current["active"]:
+                admins = self._connection.execute(
+                    "SELECT COUNT(*) FROM users WHERE role = 'admin' AND active = 1"
+                ).fetchone()[0]
+                if admins <= 1:
+                    raise AuthConflict("the last active admin cannot be deleted")
+            self._connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+            self._connection.commit()
+
+    def _migrate_legacy_roles(self) -> None:
+        schema = self._connection.execute(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'users'"
+        ).fetchone()
+        if schema is None or not any(role in (schema["sql"] or "") for role in ("'operator'", "'viewer'")):
+            return
+        self._connection.execute("DROP TABLE IF EXISTS sessions")
+        self._connection.execute("ALTER TABLE users RENAME TO users_legacy")
+        self._connection.execute(
+            """
+            CREATE TABLE users (
+                id TEXT PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                password_hash TEXT NOT NULL,
+                role TEXT NOT NULL CHECK (role IN ('admin', 'user')),
+                active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        self._connection.execute(
+            """
+            INSERT INTO users(id, username, password_hash, role, active, created_at)
+            SELECT id, username, password_hash,
+                   CASE WHEN role = 'admin' THEN 'admin' ELSE 'user' END,
+                   active, created_at
+            FROM users_legacy
+            """
+        )
+        self._connection.execute("DROP TABLE users_legacy")
 
     def update_user(
         self,

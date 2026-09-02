@@ -19,7 +19,7 @@ DiscoveryTimeout = Annotated[StrictInt, Field(ge=1, le=60)]
 ColorMode = Literal["RGB", "RGBW", "CCT"]
 DiscoverySessionStatus = Literal["running", "completed", "failed"]
 DiscoveryCompletionStatus = Literal["completed", "failed"]
-UserRole = Literal["admin", "operator", "viewer"]
+UserRole = Literal["admin", "user"]
 
 
 def utc_now() -> datetime:
@@ -318,12 +318,6 @@ class AuthUser(StrictModel):
 
 class AuthResponse(StrictModel):
     user: AuthUser
-
-
-class UserCreateRequest(StrictModel):
-    username: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$")
-    password: str = Field(min_length=8, max_length=256)
-    role: UserRole = "viewer"
 
 
 class UserUpdateRequest(StrictModel):

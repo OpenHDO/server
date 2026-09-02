@@ -141,7 +141,7 @@ non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. Browser sessions
 are backed by the server-owned SQLite auth store (`OPENHDO_AUTH_DB`, default
 `openhdo-auth.sqlite3`). Set `OPENHDO_ADMIN_USERNAME` and
 `OPENHDO_ADMIN_PASSWORD` together on first startup to bootstrap the initial
-admin. Public registration creates viewer accounts. Passwords are stored as
+admin. Public registration creates user accounts. Passwords are stored as
 scrypt hashes; sessions are revocable and are
 sent to the browser in an HttpOnly, SameSite cookie with a separate CSRF
 cookie/header check for state-changing requests.
