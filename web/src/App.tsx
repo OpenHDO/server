@@ -4,11 +4,13 @@ import { GearSix } from "@phosphor-icons/react/GearSix";
 import { SignIn } from "@phosphor-icons/react/SignIn";
 import { SignOut } from "@phosphor-icons/react/SignOut";
 import { UserPlus } from "@phosphor-icons/react/UserPlus";
+import { UsersThree } from "@phosphor-icons/react/UsersThree";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { getPanelModules, subscribeToModules } from "./modules/load";
 import type { PanelAuthUser, PanelModule, PanelModuleContext } from "./modules/registry";
 import SettingsView from "./builtins/settings";
+import UsersView from "./builtins/users";
 
 type AuthMode = "login" | "register";
 type AuthState =
@@ -28,7 +30,8 @@ type PanelNavigationItem = {
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const authPage = window.location.pathname === "/auth" || window.location.pathname === "/auth/";
 const builtInItems: PanelNavigationItem[] = [
-  { id: "settings", label: "Settings", icon: GearSix, component: SettingsView, requiredRoles: ["admin"], order: 40 },
+  { id: "users", label: "Users", icon: UsersThree, component: UsersView, requiredRoles: ["admin"], order: 40 },
+  { id: "settings", label: "Settings", icon: GearSix, component: SettingsView, requiredRoles: ["admin"], order: 50 },
 ];
 
 function cookieValue(name: string) {
