@@ -5,7 +5,6 @@ import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { DotsThreeVertical } from "@phosphor-icons/react/DotsThreeVertical";
 import { Lightbulb } from "@phosphor-icons/react/Lightbulb";
-import { MagnifyingGlass } from "@phosphor-icons/react/MagnifyingGlass";
 import { PencilSimple } from "@phosphor-icons/react/PencilSimple";
 import { PlugsConnected } from "@phosphor-icons/react/PlugsConnected";
 import { Tag } from "@phosphor-icons/react/Tag";
@@ -34,19 +33,6 @@ type Linker = {
   host: string | null;
   port: number | null;
   devices: LinkerDevice[];
-};
-
-type DiscoveryCandidate = {
-  candidate_id: string;
-  name: string;
-  transport: string;
-  requires_pairing: boolean;
-};
-
-type DiscoverySession = {
-  status: "running" | "completed" | "failed";
-  candidates: DiscoveryCandidate[];
-  error: string | null;
 };
 
 type RequestError = { detail?: string };
@@ -186,9 +172,6 @@ function ConnectorModule({ context }: PanelModuleProps) {
 function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; api: PanelModuleContext["api"]; canManage: boolean; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scanState, setScanState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [discovery, setDiscovery] = useState<DiscoverySession | null>(null);
   const [action, setAction] = useState<"rename" | "delete" | null>(null);
   const [actionName, setActionName] = useState(linker.name);
   const [actionPending, setActionPending] = useState(false);
@@ -213,38 +196,6 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
       document.removeEventListener("mousedown", closeOnOutsideClick);
     };
   }, [action, actionPending, menuOpen]);
-
-  async function scan() {
-    setExpanded(true);
-    setScanState("loading");
-    setScanError(null);
-    setDiscovery(null);
-    try {
-      const response = await api.request("/api/v1/discovery/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linker_id: linker.id, timeout_s: 5 }),
-      });
-      if (!response.ok) throw new Error(await readError(response));
-      const started = (await response.json()) as { session_id: string };
-      for (let attempt = 0; attempt < 14; attempt += 1) {
-        const result = await api.request(`/api/v1/discovery/sessions/${encodeURIComponent(started.session_id)}`);
-        if (!result.ok) throw new Error(await readError(result));
-        const session = (await result.json()) as DiscoverySession;
-        if (session.status !== "running") {
-          setDiscovery(session);
-          setScanState(session.status === "completed" ? "ready" : "error");
-          if (session.status === "failed") setScanError(session.error ?? "Discovery failed");
-          return;
-        }
-        await new Promise((resolve) => window.setTimeout(resolve, 500));
-      }
-      throw new Error("Discovery timed out");
-    } catch (error) {
-      setScanState("error");
-      setScanError(error instanceof Error ? error.message : "Unable to scan");
-    }
-  }
 
   function openAction(next: "rename" | "delete") {
     setMenuOpen(false);
@@ -305,21 +256,17 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
             {linker.version && <span title={`Version ${linker.version}`} aria-label={`Version ${linker.version}`}><Tag size={15} aria-hidden="true" /></span>}
           </div>
           <span className={`grid h-8 w-8 place-items-center ${linker.available ? "text-accent-muted" : "text-neutral-400"}`} role="img" aria-label={linker.available ? "Linker available" : "Linker offline"} title={linker.available ? "Available" : "Offline"}>{linker.available ? <CheckCircle weight="fill" size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}</span>
-          <div className="relative" ref={menuRef}>
+          {canManage && <div className="relative" ref={menuRef}>
             <button type="button" onClick={() => setMenuOpen((current) => !current)} aria-label={`Actions for ${linker.name}`} aria-expanded={menuOpen} aria-haspopup="menu" className="grid h-8 w-8 place-items-center rounded-md text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"><DotsThreeVertical size={18} aria-hidden="true" /></button>
             {menuOpen && <div role="menu" className="absolute right-0 top-10 z-20 min-w-44 rounded-md border border-neutral-800 bg-neutral-950 p-1 shadow-2xl">
-              <button type="button" role="menuitem" disabled={!linker.available || scanState === "loading"} onClick={() => { setMenuOpen(false); void scan(); }} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 disabled:pointer-events-none disabled:opacity-40"><MagnifyingGlass size={17} aria-hidden="true" />Scan devices</button>
-              {canManage && <>
                 <button type="button" role="menuitem" onClick={() => openAction("rename")} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><PencilSimple size={17} aria-hidden="true" />Rename</button>
                 <button type="button" role="menuitem" onClick={() => openAction("delete")} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-red-300 transition hover:bg-red-950/50 hover:text-red-200"><Trash size={17} aria-hidden="true" />Delete</button>
-              </>}</div>}
-          </div>
+              </div>}
+          </div>}
         </div>
       </header>
 
       {expanded && <section className="space-y-4 border-t border-neutral-800 px-3 py-3 min-[390px]:px-4">
-        {scanError && <StatusMessage tone="error" icon={<WarningCircle size={17} aria-hidden="true" />} message={scanError} />}
-        {scanState === "ready" && discovery && <DiscoveryResult session={discovery} />}
         {linker.devices.length === 0 ? (
           <p className="text-sm text-neutral-500">No connected devices</p>
         ) : (
@@ -343,21 +290,6 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
         </div>
       </div>}
     </>
-  );
-}
-
-function DiscoveryResult({ session }: { session: DiscoverySession }) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500"><CheckCircle size={15} className="text-accent-muted" aria-hidden="true" />Found {session.candidates.length}</div>
-      {session.candidates.length > 0 && <ul className="divide-y divide-neutral-800 border-y border-neutral-800">
-        {session.candidates.map((candidate) => <li key={candidate.candidate_id} className="flex items-center gap-3 py-2.5 text-sm">
-          <Lightbulb size={18} className="shrink-0 text-accent-muted" aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate text-neutral-200">{candidate.name}</span>
-          <span className="shrink-0 text-xs text-neutral-500">{candidate.requires_pairing ? "Pairing required" : candidate.transport}</span>
-        </li>)}
-      </ul>}
-    </div>
   );
 }
 
