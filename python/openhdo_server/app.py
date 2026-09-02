@@ -40,6 +40,8 @@ from .models import (
     Identifier,
     LinkRegisterEnvelope,
     LinkerEnvelope,
+    LinkerView,
+    LinkersResponse,
     LightsResponse,
     LoginRequest,
     PowerCommandEnvelope,
@@ -325,6 +327,23 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     @application.get("/api/v1/lights", response_model=LightsResponse, dependencies=[Depends(require_authorization)])
     async def list_lights() -> LightsResponse:
         return LightsResponse(lights=service.list_lights())
+
+    @application.get("/api/v1/linkers", response_model=LinkersResponse, dependencies=[Depends(require_authorization)])
+    async def list_linkers() -> LinkersResponse:
+        lights = service.list_lights()
+        return LinkersResponse(
+            linkers=[
+                LinkerView(
+                    id=manifest.id,
+                    name=manifest.name,
+                    version=manifest.version,
+                    transports=manifest.transports,
+                    available=await connections.is_connected(manifest.id),
+                    devices=[light for light in lights if light.linker_id == manifest.id],
+                )
+                for manifest in service.list_linkers()
+            ]
+        )
 
     @application.get(
         "/api/v1/lights/{light_id}",

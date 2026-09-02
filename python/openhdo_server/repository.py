@@ -56,6 +56,10 @@ class InMemoryLightRepository:
         with self._lock:
             return [self._copy(record) for record in sorted(self._lights.values(), key=lambda item: item.light_id)]
 
+    def list_linkers(self) -> list[LinkManifest]:
+        with self._lock:
+            return [manifest.model_copy(deep=True) for manifest in sorted(self._linkers.values(), key=lambda item: item.id)]
+
     def get_light(self, light_id: str) -> LightRecord:
         with self._lock:
             record = self._lights.get(light_id)

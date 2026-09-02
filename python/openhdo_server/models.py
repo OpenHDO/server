@@ -112,6 +112,15 @@ class LightRecord(LightView):
     pass
 
 
+class LinkerView(StrictModel):
+    id: Identifier
+    name: str = Field(min_length=1, max_length=128)
+    version: str = Field(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
+    transports: list[Transport]
+    available: bool
+    devices: list[LightView]
+
+
 class CommandBase(StrictModel):
     light_id: Identifier
     command_id: UUID
@@ -339,6 +348,11 @@ class UsersResponse(StrictModel):
 class LightsResponse(StrictModel):
     api_version: Literal[1] = 1
     lights: list[LightView]
+
+
+class LinkersResponse(StrictModel):
+    api_version: Literal[1] = 1
+    linkers: list[LinkerView]
 
 
 class DiscoverySessionResponse(StrictModel):

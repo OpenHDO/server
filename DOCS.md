@@ -67,6 +67,8 @@ applicable; no vendor/model/local-key fields are valid server capability data.
 The active runtime exposes these transport adapters over the same v1 model:
 
 - `GET /api/v1/health` is the unauthenticated liveness response;
+- `GET /api/v1/linkers` reads registered Linker manifests, live connection
+  availability, and their canonical Light devices;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}` read canonical state;
 - `POST /api/v1/lights/{id}/commands` accepts a complete typed command
   envelope;
@@ -139,7 +141,7 @@ Configuration is versioned (`OPENHDO_CONFIG_VERSION=1`) and loaded through the
 typed `ServerSettings` boundary. Defaults bind to `127.0.0.1:8000`; a
 non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. Browser sessions
 are backed by the server-owned SQLite auth store (`OPENHDO_AUTH_DB`, default
-`openhdo-auth.sqlite3`). Set `OPENHDO_ADMIN_USERNAME` and
+`data/openhdo-auth.sqlite3`). Set `OPENHDO_ADMIN_USERNAME` and
 `OPENHDO_ADMIN_PASSWORD` together on first startup to bootstrap the initial
 admin. Public registration creates user accounts. Passwords are stored as
 scrypt hashes; sessions are revocable and are

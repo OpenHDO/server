@@ -50,6 +50,10 @@ class LinkerConnections:
         async with self._lock:
             return len(self._connections)
 
+    async def is_connected(self, linker_id: str) -> bool:
+        async with self._lock:
+            return linker_id in self._connections
+
 
 class LightEventHub:
     """Publish transient canonical updates to connected event clients."""

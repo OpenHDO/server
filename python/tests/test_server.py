@@ -165,6 +165,19 @@ class ServerApiTests(unittest.TestCase):
             self.assertEqual(health.json()["runtime"], "python")
             self.assertEqual(client.get("/api/v1/lights").json(), {"api_version": 1, "lights": []})
 
+    def test_linkers_list_manifest_availability_and_devices(self) -> None:
+        with TestClient(create_app(ServerSettings())) as client:
+            self.assertEqual(client.get("/api/v1/linkers").json(), {"api_version": 1, "linkers": []})
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                listed = client.get("/api/v1/linkers")
+                self.assertEqual(listed.status_code, 200)
+                linker_view = listed.json()["linkers"][0]
+                self.assertTrue(linker_view["available"])
+                self.assertEqual(linker_view["transports"], ["local"])
+                self.assertEqual(linker_view["devices"][0]["light_id"], "light.living")
+            self.assertFalse(client.get("/api/v1/linkers").json()["linkers"][0]["available"])
+
     def test_linker_registers_state_and_receives_command_result_path(self) -> None:
         with TestClient(create_app(ServerSettings())) as client:
             with client.websocket_connect("/api/v1/events") as events:

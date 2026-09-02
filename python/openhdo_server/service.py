@@ -23,6 +23,7 @@ from .models import (
     LightRecord,
     LightStateReportedEnvelope,
     LightUpdatedEnvelope,
+    LinkManifest,
     LinkRegisterEnvelope,
     LinkerEnvelope,
     utc_now,
@@ -82,6 +83,9 @@ class LightService:
 
     def list_lights(self) -> list[LightRecord]:
         return self.repository.list_lights()
+
+    def list_linkers(self) -> list[LinkManifest]:
+        return self.repository.list_linkers()
 
     def get_light(self, light_id: str) -> LightRecord:
         try:
