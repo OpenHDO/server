@@ -4,6 +4,7 @@ import { GearSix } from "@phosphor-icons/react/GearSix";
 import { House } from "@phosphor-icons/react/House";
 import { SignIn } from "@phosphor-icons/react/SignIn";
 import { SignOut } from "@phosphor-icons/react/SignOut";
+import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
 import { UserPlus } from "@phosphor-icons/react/UserPlus";
 import { UsersThree } from "@phosphor-icons/react/UsersThree";
 import { useEffect, useState, useSyncExternalStore } from "react";
@@ -14,7 +15,7 @@ import SettingsView from "./builtins/settings";
 import UsersView from "./builtins/users";
 
 type AuthMode = "login" | "register";
-type PageRoute = "admin" | "auth" | "not-found";
+type PageRoute = "home" | "admin" | "auth" | "not-found";
 type AuthState =
   | { status: "loading"; user: null }
   | { status: "guest"; user: null }
@@ -37,6 +38,7 @@ const builtInItems: PanelNavigationItem[] = [
 ];
 
 function resolveRoute(pathname: string): PageRoute {
+  if (pathname === "/") return "home";
   if (pathname === "/admin" || pathname === "/admin/") return "admin";
   if (pathname === "/auth" || pathname === "/auth/") return "auth";
   return "not-found";
@@ -72,6 +74,7 @@ function openAuthPage(mode: AuthMode) {
 
 export default function App() {
   const [auth, setAuth] = useState<AuthState>({ status: "loading", user: null });
+  const [authError, setAuthError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginPending, setLoginPending] = useState(false);
 
@@ -86,10 +89,12 @@ export default function App() {
           return;
         }
         const payload = (await response.json()) as { user: PanelAuthUser };
+        setAuthError(null);
         setAuth({ status: "authenticated", user: payload.user });
       })
       .catch(() => {
         if (mounted) {
+          setAuthError("Server unavailable");
           setLoginError("Server unavailable");
           setAuth({ status: "guest", user: null });
         }
@@ -136,6 +141,9 @@ export default function App() {
 
   if (pageRoute === "not-found") return <NotFoundPage />;
   if (auth.status === "loading") return <LoadingScreen />;
+  if (pageRoute === "home") {
+    return <HomePage user={auth.status === "authenticated" ? auth.user : null} authError={authError} onLogout={logout} />;
+  }
   if (pageRoute === "auth") {
     if (auth.status === "authenticated") return <LoadingScreen />;
     return (
@@ -182,6 +190,16 @@ function NotFoundPage() {
           <House size={18} aria-hidden="true" />
           Go home
         </a>
+      </div>
+    </main>
+  );
+}
+
+function HomePage({ user, authError, onLogout }: { user: PanelAuthUser | null; authError: string | null; onLogout: () => Promise<void> }) {
+  return (
+    <main className="min-h-screen bg-[#0a0a0a] text-slate-100">
+      <div className="fixed left-4 top-4 z-20 min-[390px]:left-5 min-[390px]:top-5">
+        <MiniProfile user={user} authNext="/" authError={authError} onLogout={onLogout} />
       </div>
     </main>
   );
@@ -340,10 +358,11 @@ function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; o
   );
 }
 
-function MiniProfile({ user, onLogout }: { user: PanelAuthUser | null; onLogout: () => Promise<void> }) {
+function MiniProfile({ user, authNext = "/admin/", authError, onLogout }: { user: PanelAuthUser | null; authNext?: string; authError?: string | null; onLogout: () => Promise<void> }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const menuPosition = authNext === "/" ? "left-0" : "right-0";
 
   useEffect(() => {
     if (!open) return;
@@ -375,23 +394,25 @@ function MiniProfile({ user, onLogout }: { user: PanelAuthUser | null; onLogout:
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((current) => !current)}
-        className="flex items-center gap-2 rounded-full p-1 text-neutral-300 transition hover:bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        className="flex items-center gap-2 rounded-full bg-neutral-950/80 p-1 text-neutral-300 shadow-lg transition hover:bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
       >
         {user ? <Avatar name={user.username} size={36} variant="beam" colors={avatarColors} title={false} className="rounded-full" /> : <span className="grid h-9 w-9 place-items-center rounded-full bg-neutral-800 text-neutral-400"><SignIn size={18} aria-hidden="true" /></span>}
         <CaretDown size={14} className={`hidden text-neutral-500 transition-transform min-[390px]:block ${open ? "rotate-180" : ""}`} aria-hidden="true" />
       </button>
 
-      {open && <div role="menu" className="absolute right-0 top-12 z-20 min-w-44 rounded-md border border-neutral-800 bg-neutral-950 p-1 shadow-2xl">
+      {open && <div role="menu" className={`absolute ${menuPosition} top-12 z-20 min-w-44 rounded-md border border-neutral-800 bg-neutral-950 p-1 shadow-2xl`}>
         {user ? <>
           <div className="border-b border-neutral-800 px-3 py-2">
             <div className="text-sm text-neutral-100">{user.username}</div>
             <div className="mt-1 text-xs text-neutral-500">{user.role}</div>
           </div>
+          {user.role === "admin" && <a role="menuitem" href="/admin/" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SquaresFour size={17} aria-hidden="true" />Admin panel</a>}
           <button type="button" role="menuitem" disabled={pending} onClick={() => void handleLogout()} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 disabled:opacity-60"><SignOut size={17} aria-hidden="true" />Sign out</button>
         </> : <>
-          <a role="menuitem" href="/auth?mode=login&next=%2Fadmin%2F" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SignIn size={17} aria-hidden="true" />Sign in</a>
-          <a role="menuitem" href="/auth?mode=register&next=%2Fadmin%2F" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><UserPlus size={17} aria-hidden="true" />Register</a>
+          <a role="menuitem" href={`/auth?mode=login&next=${encodeURIComponent(authNext)}`} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SignIn size={17} aria-hidden="true" />Sign in</a>
+          <a role="menuitem" href={`/auth?mode=register&next=${encodeURIComponent(authNext)}`} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><UserPlus size={17} aria-hidden="true" />Register</a>
         </>}
+        {authError && <div className="border-t border-red-900/70 px-3 py-2 text-xs text-red-300">{authError}</div>}
         {error && <div className="border-t border-red-900/70 px-3 py-2 text-xs text-red-300">{error}</div>}
       </div>}
     </div>

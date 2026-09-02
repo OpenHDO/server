@@ -11,6 +11,8 @@ function sharedAuthEntry(): Plugin {
         const url = requestWithUrl.url;
         if (url === "/" || url?.startsWith("/?")) {
           requestWithUrl.url = `/admin/${url.slice(1)}`;
+        } else if (url === "/admin" || url?.startsWith("/admin?")) {
+          requestWithUrl.url = `/admin/${url.slice("/admin".length)}`;
         } else if (url === "/auth" || url?.startsWith("/auth/") || url?.startsWith("/auth?")) {
           requestWithUrl.url = `/admin/${url.slice("/auth".length).replace(/^\/?/, "")}`;
         }

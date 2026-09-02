@@ -497,6 +497,10 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                 await discovery_service.linker_disconnected(linker_id)
 
     if application.state.admin_panel_available:
+        @application.api_route("/", methods=["GET"], include_in_schema=False)
+        async def home_panel(_: Request) -> FileResponse:
+            return FileResponse(admin_index)
+
         application.mount(
             "/admin",
             AdminStaticFiles(directory=str(web_dist), html=True, index_path=admin_index),

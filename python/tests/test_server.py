@@ -372,6 +372,7 @@ class ServerApiTests(unittest.TestCase):
             if application.state.admin_panel_available:
                 self.assertEqual(response.status_code, 200)
                 self.assertIn("<html", response.text.lower())
+                self.assertEqual(client.get("/").status_code, 200)
                 self.assertEqual(client.get("/auth").status_code, 200)
                 self.assertEqual(client.get("/admin/unknown-page").status_code, 200)
                 self.assertEqual(client.get("/auth/unknown-page").status_code, 200)
