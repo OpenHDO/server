@@ -98,6 +98,32 @@ Server-owned persistent runtime data lives under `data/`. Server module data
 belongs under `data/modules/<module-name>/`. Linker-owned data remains in the
 Linker data directory and is not managed by the server.
 
+## Standalone Linker service
+
+The repository also contains the separate `linkerct` process under
+`python/openhdo_linker_service/`. It listens for the server on
+`ws://<host>:<port>/api/v1/linker`, checks `X-OpenHDO-Minisecret`, and delegates
+real Tuya access to the OpenHDO Linker driver. On a Linker host with the
+separate Linker checkout available, install both packages:
+
+```bash
+python -m pip install -e ../linker
+python -m pip install -e ../server/python
+```
+
+Then copy `linker/config.example.json` to
+`data/linker/config.json`, set a local secret, then run:
+
+```bash
+linkerct --config data/linker/config.json validate
+linkerct --config data/linker/config.json run
+```
+
+Without a `tuya` section the process exposes only real LAN discovery and does
+not invent devices. To control an RGB lamp, add its real IP, device ID, local
+key, protocol, and DP mapping under `tuya`. Add the Linker endpoint in the
+server admin panel using the same host, port, and minisecret.
+
 ## Server admin panel
 
 Build the server-owned panel from `web/`:

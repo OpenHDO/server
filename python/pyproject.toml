@@ -27,6 +27,7 @@ dev = [
 
 [project.scripts]
 openhdo-server = "openhdo_server.__main__:main"
+linkerct = "openhdo_linker_service.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
