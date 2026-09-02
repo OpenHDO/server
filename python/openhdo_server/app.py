@@ -13,7 +13,7 @@ from uuid import UUID, uuid4
 
 from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import TypeAdapter, ValidationError
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
@@ -43,6 +43,7 @@ from .models import (
     LoginRequest,
     PowerCommandEnvelope,
     ProblemResponse,
+    RegisterRequest,
     RgbColorCommandEnvelope,
     LightView,
     Source,
@@ -238,6 +239,14 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             path="/",
         )
         return AuthResponse(user=_auth_user(user))
+
+    @application.post("/api/v1/auth/register", response_model=AuthUser, status_code=201)
+    async def register(credentials: RegisterRequest) -> AuthUser:
+        try:
+            user = auth_store.register_user(credentials.username, credentials.password)
+        except AuthConflict as error:
+            raise ServiceError(409, "auth_conflict", str(error)) from error
+        return _auth_user(user)
 
     @application.get("/api/v1/auth/me", response_model=AuthResponse)
     async def auth_me(request: Request) -> AuthResponse:
@@ -473,6 +482,11 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
 
     if application.state.admin_panel_available:
         application.mount("/admin", StaticFiles(directory=str(web_dist), html=True), name="server-admin")
+
+        @application.api_route("/auth", methods=["GET"], include_in_schema=False)
+        @application.api_route("/auth/", methods=["GET"], include_in_schema=False)
+        async def auth_panel(_: Request) -> FileResponse:
+            return FileResponse(admin_index)
     else:
         @application.api_route("/admin", methods=["GET"], include_in_schema=False)
         @application.api_route("/admin/{path:path}", methods=["GET"], include_in_schema=False)
@@ -483,6 +497,17 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                 content=ProblemResponse(
                     error="admin_panel_unavailable",
                     detail="build server/web to enable the server admin panel",
+                ).model_dump(mode="json"),
+            )
+
+        @application.api_route("/auth", methods=["GET"], include_in_schema=False)
+        @application.api_route("/auth/", methods=["GET"], include_in_schema=False)
+        async def auth_unavailable(_: Request) -> JSONResponse:
+            return JSONResponse(
+                status_code=404,
+                content=ProblemResponse(
+                    error="auth_panel_unavailable",
+                    detail="build server/web to enable the shared auth panel",
                 ).model_dump(mode="json"),
             )
 

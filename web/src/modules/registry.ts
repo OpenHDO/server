@@ -17,7 +17,8 @@ export type PanelModuleContext = {
     request: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   };
   auth: {
-    user: PanelAuthUser;
+    user: PanelAuthUser | null;
+    login: () => void;
     logout: () => Promise<void>;
   };
 };

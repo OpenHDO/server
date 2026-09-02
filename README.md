@@ -65,8 +65,8 @@ allowlist, local WebSocket behavior is unchanged.
 The v1 API currently includes:
 
 - `GET /api/v1/health`;
-- `POST /api/v1/auth/login`, `GET /api/v1/auth/me`, and
-  `POST /api/v1/auth/logout` for browser sessions;
+- `POST /api/v1/auth/login`, `POST /api/v1/auth/register`,
+  `GET /api/v1/auth/me`, and `POST /api/v1/auth/logout` for browser sessions;
 - `GET /api/v1/admin/users`, `POST /api/v1/admin/users`, and
   `PATCH /api/v1/admin/users/{id}` for admin-only user and role management;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}`;
@@ -101,8 +101,9 @@ When `web/dist/index.html` exists, the Python runtime serves it under
 `/admin`. The build is optional; if the distribution is absent, `/admin`
 returns a clear `admin_panel_unavailable` response and the API remains usable.
 Configure `OPENHDO_ADMIN_USERNAME` and `OPENHDO_ADMIN_PASSWORD` before the
-first start, then sign in at `/admin`. No password or session token is
-embedded in the panel build.
+first start, then sign in at the shared `/auth` page or open `/admin` and use
+the profile menu. Public registration creates viewer accounts. No password or
+session token is embedded in the panel build.
 
 ## Checks
 

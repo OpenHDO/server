@@ -303,6 +303,11 @@ class LoginRequest(StrictModel):
     password: str = Field(min_length=8, max_length=256)
 
 
+class RegisterRequest(StrictModel):
+    username: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{1,63}$")
+    password: str = Field(min_length=8, max_length=256)
+
+
 class AuthUser(StrictModel):
     id: str
     username: str

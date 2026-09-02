@@ -1,10 +1,26 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+function sharedAuthEntry(): Plugin {
+  return {
+    name: "openhdo-auth-entry",
+    configureServer(server: ViteDevServer) {
+      server.middlewares.use((request, _response, next) => {
+        const requestWithUrl = request as typeof request & { url?: string };
+        const url = requestWithUrl.url;
+        if (url === "/auth" || url?.startsWith("/auth/") || url?.startsWith("/auth?")) {
+          requestWithUrl.url = `/admin/${url.slice("/auth".length).replace(/^\/?/, "")}`;
+        }
+        next();
+      });
+    },
+  };
+}
+
 export default defineConfig({
   base: "/admin/",
-  plugins: [react(), tailwindcss()],
+  plugins: [sharedAuthEntry(), react(), tailwindcss()],
   server: {
     port: 4173,
     strictPort: true,

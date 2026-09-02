@@ -372,9 +372,11 @@ class ServerApiTests(unittest.TestCase):
             if application.state.admin_panel_available:
                 self.assertEqual(response.status_code, 200)
                 self.assertIn("<html", response.text.lower())
+                self.assertEqual(client.get("/auth").status_code, 200)
             else:
                 self.assertEqual(response.status_code, 404)
                 self.assertEqual(response.json()["error"], "admin_panel_unavailable")
+                self.assertEqual(client.get("/auth").status_code, 404)
 
     def test_invalid_brightness_is_rejected_and_disconnected_linker_is_not_success(self) -> None:
         with TestClient(create_app(ServerSettings())) as client:

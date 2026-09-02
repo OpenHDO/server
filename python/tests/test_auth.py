@@ -11,6 +11,26 @@ from openhdo_server.config import ServerSettings
 
 
 class AuthApiTests(unittest.TestCase):
+    def test_registration_creates_viewer_account(self) -> None:
+        with TemporaryDirectory() as directory:
+            settings = ServerSettings(
+                auth_db_path=str(Path(directory) / "auth.sqlite3"),
+                admin_username="admin",
+                admin_password="correct-password",
+            )
+            with TestClient(create_app(settings)) as client:
+                registered = client.post(
+                    "/api/v1/auth/register",
+                    json={"username": "new-user", "password": "viewer-password"},
+                )
+                self.assertEqual(registered.status_code, 201)
+                self.assertEqual(registered.json()["role"], "viewer")
+                duplicate = client.post(
+                    "/api/v1/auth/register",
+                    json={"username": "new-user", "password": "viewer-password"},
+                )
+                self.assertEqual(duplicate.status_code, 409)
+
     def test_login_sessions_csrf_and_role_management(self) -> None:
         with TemporaryDirectory() as directory:
             settings = ServerSettings(

@@ -181,6 +181,11 @@ class AuthStore:
             ).fetchone()
         return _user_from_row(row)
 
+    def register_user(self, username: str, password: str) -> UserRecord:
+        if not self.has_users():
+            raise AuthConflict("bootstrap admin is required before registration")
+        return self.create_user(username, password, "viewer")
+
     def update_user(
         self,
         user_id: str,

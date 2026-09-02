@@ -1,17 +1,21 @@
+import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { SignIn } from "@phosphor-icons/react/SignIn";
 import { SignOut } from "@phosphor-icons/react/SignOut";
+import { UserPlus } from "@phosphor-icons/react/UserPlus";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { getPanelModules, subscribeToModules } from "./modules/load";
 import type { PanelAuthUser, PanelModule, PanelModuleContext } from "./modules/registry";
 
+type AuthMode = "login" | "register";
 type AuthState =
   | { status: "loading"; user: null }
-  | { status: "login"; user: null }
+  | { status: "guest"; user: null }
   | { status: "authenticated"; user: PanelAuthUser };
-
 type ApiError = { detail?: string };
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+const authPage = window.location.pathname === "/auth" || window.location.pathname === "/auth/";
 
 function cookieValue(name: string) {
   const prefix = `${name}=`;
@@ -32,6 +36,15 @@ async function responseError(response: Response) {
   return payload?.detail ?? `Request failed (${response.status})`;
 }
 
+function nextPath() {
+  const requested = new URLSearchParams(window.location.search).get("next");
+  return requested && requested.startsWith("/") && !requested.startsWith("//") ? requested : "/admin/";
+}
+
+function openAuthPage(mode: AuthMode) {
+  window.location.assign(`/auth?mode=${mode}&next=${encodeURIComponent(window.location.pathname)}`);
+}
+
 export default function App() {
   const [auth, setAuth] = useState<AuthState>({ status: "loading", user: null });
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -43,7 +56,7 @@ export default function App() {
       .then(async (response) => {
         if (!mounted) return;
         if (!response.ok) {
-          setAuth({ status: "login", user: null });
+          setAuth({ status: "guest", user: null });
           return;
         }
         const payload = (await response.json()) as { user: PanelAuthUser };
@@ -52,13 +65,17 @@ export default function App() {
       .catch(() => {
         if (mounted) {
           setLoginError("Server unavailable");
-          setAuth({ status: "login", user: null });
+          setAuth({ status: "guest", user: null });
         }
       });
     return () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (authPage && auth.status === "authenticated") window.location.replace(nextPath());
+  }, [auth.status]);
 
   async function login(username: string, password: string) {
     setLoginPending(true);
@@ -72,8 +89,10 @@ export default function App() {
       if (!response.ok) throw new Error(await responseError(response));
       const payload = (await response.json()) as { user: PanelAuthUser };
       setAuth({ status: "authenticated", user: payload.user });
+      return true;
     } catch (error) {
       setLoginError(error instanceof Error ? error.message : "Unable to sign in");
+      return false;
     } finally {
       setLoginPending(false);
     }
@@ -82,14 +101,24 @@ export default function App() {
   async function logout() {
     const response = await requestFromModule("/api/v1/auth/logout", { method: "POST" });
     if (!response.ok && response.status !== 401) throw new Error(await responseError(response));
-    setAuth({ status: "login", user: null });
+    setAuth({ status: "guest", user: null });
   }
 
   if (auth.status === "loading") return <LoadingScreen />;
-  if (auth.status === "login") {
-    return <LoginScreen onSubmit={login} pending={loginPending} error={loginError} />;
+  if (authPage) {
+    if (auth.status === "authenticated") return <LoadingScreen />;
+    return (
+      <AuthPage
+        initialMode={new URLSearchParams(window.location.search).get("mode") === "register" ? "register" : "login"}
+        onLogin={async (username, password) => {
+          if (await login(username, password)) window.location.assign(nextPath());
+        }}
+        loginPending={loginPending}
+        loginError={loginError}
+      />
+    );
   }
-  return <AuthenticatedPanel user={auth.user} onLogout={logout} />;
+  return <PanelShell user={auth.status === "authenticated" ? auth.user : null} onLogin={() => openAuthPage("login")} onLogout={logout} />;
 }
 
 function LoadingScreen() {
@@ -100,9 +129,54 @@ function LoadingScreen() {
   );
 }
 
-function LoginScreen({ onSubmit, pending, error }: { onSubmit: (username: string, password: string) => Promise<void>; pending: boolean; error: string | null }) {
+function AuthPage({
+  initialMode,
+  onLogin,
+  loginPending,
+  loginError,
+}: {
+  initialMode: AuthMode;
+  onLogin: (username: string, password: string) => Promise<void>;
+  loginPending: boolean;
+  loginError: string | null;
+}) {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [registerPending, setRegisterPending] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const busy = loginPending || registerPending;
+
+  function changeMode(next: AuthMode) {
+    setMode(next);
+    setPassword("");
+    setRegisterError(null);
+    setSuccess(null);
+    window.history.replaceState({}, "", `/auth?mode=${next}&next=${encodeURIComponent(nextPath())}`);
+  }
+
+  async function register() {
+    setRegisterPending(true);
+    setRegisterError(null);
+    setSuccess(null);
+    try {
+      const response = await requestFromModule("/api/v1/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      if (!response.ok) throw new Error(await responseError(response));
+      setMode("login");
+      setPassword("");
+      setSuccess("Account created");
+      window.history.replaceState({}, "", `/auth?mode=login&next=${encodeURIComponent(nextPath())}`);
+    } catch (error) {
+      setRegisterError(error instanceof Error ? error.message : "Unable to create account");
+    } finally {
+      setRegisterPending(false);
+    }
+  }
 
   return (
     <main className="grid min-h-screen place-items-center bg-[#0a0a0a] px-5 text-slate-100">
@@ -110,13 +184,19 @@ function LoginScreen({ onSubmit, pending, error }: { onSubmit: (username: string
         className="w-full max-w-sm space-y-6"
         onSubmit={(event) => {
           event.preventDefault();
-          void onSubmit(username, password);
+          if (mode === "login") void onLogin(username, password);
+          else void register();
         }}
       >
         <div className="flex items-center gap-3">
           <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-9 w-9" />
-          <span className="font-brand text-xl font-bold tracking-tight">Admin</span>
+          <span className="font-brand text-xl font-bold tracking-tight">OpenHDO</span>
         </div>
+        <div className="flex gap-5 border-b border-neutral-800 text-sm">
+          <button type="button" onClick={() => changeMode("login")} className={`border-b-2 pb-3 ${mode === "login" ? "border-accent text-neutral-100" : "border-transparent text-neutral-500"}`}>Sign in</button>
+          <button type="button" onClick={() => changeMode("register")} className={`border-b-2 pb-3 ${mode === "register" ? "border-accent text-neutral-100" : "border-transparent text-neutral-500"}`}>Register</button>
+        </div>
+        <h1 className="font-brand text-2xl font-bold tracking-tight">{mode === "login" ? "Sign in" : "Create account"}</h1>
         <div className="space-y-3">
           <label className="grid gap-2 text-sm text-neutral-300">
             Username
@@ -131,8 +211,9 @@ function LoginScreen({ onSubmit, pending, error }: { onSubmit: (username: string
           <label className="grid gap-2 text-sm text-neutral-300">
             Password
             <input
-              autoComplete="current-password"
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
               required
+              minLength={8}
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -140,43 +221,30 @@ function LoginScreen({ onSubmit, pending, error }: { onSubmit: (username: string
             />
           </label>
         </div>
-        {error && <p className="border-y border-red-900/70 py-3 text-sm text-red-300">{error}</p>}
+        {(mode === "login" ? loginError : registerError) && <p className="border-y border-red-900/70 py-3 text-sm text-red-300">{mode === "login" ? loginError : registerError}</p>}
+        {success && <p className="border-y border-neutral-800 py-3 text-sm text-accent-muted">{success}</p>}
         <button
           type="submit"
-          disabled={pending}
+          disabled={busy}
           className="h-11 w-full rounded-md bg-accent px-4 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60"
         >
-          {pending ? "Signing in…" : "Sign in"}
+          {busy ? (mode === "login" ? "Signing in…" : "Creating…") : mode === "login" ? "Sign in" : "Create account"}
         </button>
       </form>
     </main>
   );
 }
 
-function AuthenticatedPanel({ user, onLogout }: { user: PanelAuthUser; onLogout: () => Promise<void> }) {
+function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; onLogin: () => void; onLogout: () => Promise<void> }) {
   const panelItems = useSyncExternalStore(subscribeToModules, getPanelModules, getPanelModules);
-  const visibleItems = panelItems.filter((item) => !item.requiredRoles || item.requiredRoles.includes(user.role));
+  const visibleItems = panelItems.filter((item) => !item.requiredRoles || (user && item.requiredRoles.includes(user.role)));
   const [activeId, setActiveId] = useState<string | null>(visibleItems[0]?.id ?? null);
-  const [logoutPending, setLogoutPending] = useState(false);
-  const [logoutError, setLogoutError] = useState<string | null>(null);
   const activeItem = visibleItems.find((item) => item.id === activeId) ?? visibleItems[0];
   const moduleContext: PanelModuleContext = {
     navigate: setActiveId,
     api: { request: requestFromModule },
-    auth: { user, logout: onLogout },
+    auth: { user, login: onLogin, logout: onLogout },
   };
-
-  async function handleLogout() {
-    setLogoutPending(true);
-    setLogoutError(null);
-    try {
-      await onLogout();
-    } catch (error) {
-      setLogoutError(error instanceof Error ? error.message : "Unable to sign out");
-    } finally {
-      setLogoutPending(false);
-    }
-  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-100">
@@ -185,19 +253,8 @@ function AuthenticatedPanel({ user, onLogout }: { user: PanelAuthUser; onLogout:
           <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-8 w-8" />
           <span className="font-brand text-lg font-bold tracking-tight">Admin</span>
         </div>
-        <button
-          type="button"
-          aria-label="Sign out"
-          title="Sign out"
-          disabled={logoutPending}
-          onClick={() => void handleLogout()}
-          className="rounded-md p-2 text-neutral-400 transition hover:bg-neutral-900 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60"
-        >
-          <SignOut size={19} aria-hidden="true" />
-        </button>
+        <MiniProfile user={user} onLogout={onLogout} />
       </header>
-
-      {logoutError && <div className="border-b border-red-900/70 px-4 py-3 text-sm text-red-300 min-[390px]:px-5 md:px-6">{logoutError}</div>}
 
       <div className="flex flex-col md:grid md:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_1fr] wide:grid-cols-[15rem_1fr]">
         <aside className="border-b border-neutral-800 px-4 py-3 min-[390px]:px-5 md:border-b-0 md:border-r md:px-3 md:py-5 wide:px-4" aria-label="Panel navigation">
@@ -207,11 +264,82 @@ function AuthenticatedPanel({ user, onLogout }: { user: PanelAuthUser; onLogout:
         </aside>
 
         <main className="min-w-0 px-4 py-6 min-[390px]:px-5 md:px-8 md:py-8 wide:px-12" aria-label={activeItem ? `${activeItem.label} module` : "Panel modules"}>
-          {activeItem ? <activeItem.component context={moduleContext} /> : <p className="text-sm text-neutral-500">No modules</p>}
+          {activeItem ? <activeItem.component context={moduleContext} /> : null}
         </main>
       </div>
     </div>
   );
+}
+
+function MiniProfile({ user, onLogout }: { user: PanelAuthUser | null; onLogout: () => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
+  async function handleLogout() {
+    setPending(true);
+    setError(null);
+    try {
+      await onLogout();
+      setOpen(false);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to sign out");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  const initials = user ? avatarInitials(user.username) : null;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label={user ? `Open profile for ${user.username}` : "Open sign in menu"}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((current) => !current)}
+        className="flex items-center gap-2 rounded-full p-1 text-neutral-300 transition hover:bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      >
+        {user ? <span className={`grid h-9 w-9 place-items-center rounded-full text-xs font-bold text-neutral-950 ${avatarColor(user.username)}`}>{initials}</span> : <span className="grid h-9 w-9 place-items-center rounded-full bg-neutral-800 text-neutral-400"><SignIn size={18} aria-hidden="true" /></span>}
+        <CaretDown size={14} className={`hidden text-neutral-500 transition-transform min-[390px]:block ${open ? "rotate-180" : ""}`} aria-hidden="true" />
+      </button>
+
+      {open && <div role="menu" className="absolute right-0 top-12 z-20 min-w-44 rounded-md border border-neutral-800 bg-neutral-950 p-1 shadow-2xl">
+        {user ? <>
+          <div className="border-b border-neutral-800 px-3 py-2">
+            <div className="text-sm text-neutral-100">{user.username}</div>
+            <div className="mt-1 text-xs text-neutral-500">{user.role}</div>
+          </div>
+          <button type="button" role="menuitem" disabled={pending} onClick={() => void handleLogout()} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 disabled:opacity-60"><SignOut size={17} aria-hidden="true" />Sign out</button>
+        </> : <>
+          <a role="menuitem" href="/auth?mode=login&next=%2Fadmin%2F" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SignIn size={17} aria-hidden="true" />Sign in</a>
+          <a role="menuitem" href="/auth?mode=register&next=%2Fadmin%2F" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><UserPlus size={17} aria-hidden="true" />Register</a>
+        </>}
+        {error && <div className="border-t border-red-900/70 px-3 py-2 text-xs text-red-300">{error}</div>}
+      </div>}
+    </div>
+  );
+}
+
+const avatarColors = ["bg-fuchsia-400", "bg-sky-400", "bg-amber-300", "bg-lime-400", "bg-violet-400"];
+
+function avatarColor(username: string) {
+  const total = [...username].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+  return avatarColors[total % avatarColors.length];
+}
+
+function avatarInitials(username: string) {
+  const parts = username.trim().split(/[\s._-]+/).filter(Boolean);
+  return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : parts[0]?.slice(0, 2) ?? "?").toUpperCase();
 }
 
 function ModuleLink({ item, activeId, onSelect }: { item: PanelModule; activeId: string | null; onSelect: (id: string) => void }) {

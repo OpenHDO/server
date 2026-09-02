@@ -141,11 +141,13 @@ non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. Browser sessions
 are backed by the server-owned SQLite auth store (`OPENHDO_AUTH_DB`, default
 `openhdo-auth.sqlite3`). Set `OPENHDO_ADMIN_USERNAME` and
 `OPENHDO_ADMIN_PASSWORD` together on first startup to bootstrap the initial
-admin. Passwords are stored as scrypt hashes; sessions are revocable and are
+admin. Public registration creates viewer accounts. Passwords are stored as
+scrypt hashes; sessions are revocable and are
 sent to the browser in an HttpOnly, SameSite cookie with a separate CSRF
 cookie/header check for state-changing requests.
-The static `/admin` shell remains readable without credentials so it can show
-the login screen. Native Linker and backward-compatible service clients may
+The static `/admin` shell remains readable without credentials and exposes the
+mini-profile guest state. Shared login and registration are served from the
+minimal `/auth` page. Native Linker and backward-compatible service clients may
 continue using a bearer token when `OPENHDO_API_TOKEN` is configured.
 For a standalone React client on a separate origin,
 `OPENHDO_CORS_ORIGINS` accepts a comma-separated allowlist of exact `http` or

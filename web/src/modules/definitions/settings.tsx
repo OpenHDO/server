@@ -99,7 +99,7 @@ function SettingsModule({ context }: PanelModuleProps) {
       <section>
         <div className="flex items-center justify-between gap-4 border-b border-neutral-800 pb-4">
           <h1 className="font-brand text-2xl font-bold tracking-tight">Users</h1>
-          <span className="text-sm text-neutral-500">{context.auth.user.username}</span>
+          <span className="text-sm text-neutral-500">{context.auth.user?.username}</span>
         </div>
 
         <form onSubmit={createUser} className="grid gap-3 border-b border-neutral-800 py-5 md:grid-cols-[1fr_1fr_10rem_auto] md:items-end">
@@ -167,7 +167,7 @@ function SettingsModule({ context }: PanelModuleProps) {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-sm font-medium text-neutral-100">
                     {user.username}
-                    {user.id === context.auth.user.id && <span className="text-xs text-accent-muted">you</span>}
+                    {user.id === context.auth.user?.id && <span className="text-xs text-accent-muted">you</span>}
                   </div>
                   <div className="mt-1 text-xs text-neutral-500">{user.active ? "Active" : "Disabled"}</div>
                 </div>
