@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import unittest
 import time
+from tempfile import TemporaryDirectory
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -50,6 +51,17 @@ def register_message() -> dict:
             ],
         },
     )
+
+
+def create_linker_app(settings: ServerSettings | None = None, *, register: bool = True):
+    data_directory = TemporaryDirectory()
+    application = create_app(
+        (settings or ServerSettings()).model_copy(update={"data_dir": data_directory.name})
+    )
+    application.state.test_data_directory = data_directory
+    if register:
+        application.state.linker_registry.add("linker.test", "Test Linker")
+    return application
 
 
 def reported_state(brightness: int, revision: int, **extra: object) -> dict:
@@ -135,7 +147,7 @@ class ServerApiTests(unittest.TestCase):
 
     def test_configured_origin_allowlist_handles_browser_and_native_websockets(self) -> None:
         settings = ServerSettings(cors_origins=("http://localhost:5173",))
-        with TestClient(create_app(settings)) as client:
+        with TestClient(create_linker_app(settings)) as client:
             for headers in ({}, {"Origin": "http://localhost:3000"}):
                 with self.assertRaises(WebSocketDisconnect) as error:
                     with client.websocket_connect("/api/v1/events", headers=headers):
@@ -166,8 +178,10 @@ class ServerApiTests(unittest.TestCase):
             self.assertEqual(client.get("/api/v1/lights").json(), {"api_version": 1, "lights": []})
 
     def test_linkers_list_manifest_availability_and_devices(self) -> None:
-        with TestClient(create_app(ServerSettings())) as client:
+        application = create_linker_app(register=False)
+        with TestClient(application) as client:
             self.assertEqual(client.get("/api/v1/linkers").json(), {"api_version": 1, "linkers": []})
+            application.state.linker_registry.add("linker.test", "Test Linker")
             with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
                 linker.send_json(register_message())
                 listed = client.get("/api/v1/linkers")
@@ -178,8 +192,15 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(linker_view["devices"][0]["light_id"], "light.living")
             self.assertFalse(client.get("/api/v1/linkers").json()["linkers"][0]["available"])
 
+    def test_unregistered_linker_is_rejected_before_registration(self) -> None:
+        with TestClient(create_linker_app(register=False)) as client:
+            with self.assertRaises(WebSocketDisconnect) as error:
+                with client.websocket_connect("/api/v1/linkers/linker.test"):
+                    pass
+            self.assertEqual(error.exception.code, 1008)
+
     def test_linker_registers_state_and_receives_command_result_path(self) -> None:
-        with TestClient(create_app(ServerSettings())) as client:
+        with TestClient(create_linker_app()) as client:
             with client.websocket_connect("/api/v1/events") as events:
                 with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
                     linker.send_json(register_message())
@@ -245,7 +266,7 @@ class ServerApiTests(unittest.TestCase):
                     self.assertEqual(client.get("/api/v1/lights/light.living").json()["state"]["brightness"], 255)
 
     def test_patch_maps_to_a_typed_light_command(self) -> None:
-        with TestClient(create_app(ServerSettings())) as client:
+        with TestClient(create_linker_app()) as client:
             with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
                 linker.send_json(register_message())
                 response = client.patch(
@@ -258,7 +279,7 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(forwarded["payload"]["brightness"], 0)
 
     def test_discovery_session_uses_linker_socket_and_keeps_real_empty_scan_empty(self) -> None:
-        with TestClient(create_app(ServerSettings())) as client:
+        with TestClient(create_linker_app()) as client:
             with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
                 linker.send_json(register_message())
                 response = client.post(
@@ -306,7 +327,7 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(completed["status"], "completed")
 
     def test_discovery_timeout_and_unavailable_linker_are_explicit_failures(self) -> None:
-        with TestClient(create_app(ServerSettings())) as client:
+        with TestClient(create_linker_app()) as client:
             unavailable = client.post(
                 "/api/v1/discovery/sessions",
                 json={"linker_id": "linker.test", "timeout_s": 1},
@@ -329,7 +350,7 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(timed_out["error"], "discovery timed out")
 
     def test_linker_disconnect_terminally_fails_running_discovery(self) -> None:
-        with TestClient(create_app(ServerSettings())) as client:
+        with TestClient(create_linker_app()) as client:
             with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
                 linker.send_json(register_message())
                 response = client.post(
@@ -344,7 +365,7 @@ class ServerApiTests(unittest.TestCase):
             self.assertEqual(failed["error"], "linker disconnected")
 
     def test_discovery_requires_auth_and_rejects_wrong_correlation(self) -> None:
-        application = create_app(ServerSettings(api_token="long-enough-token"))
+        application = create_linker_app(ServerSettings(api_token="long-enough-token"))
         with TestClient(application) as client:
             body = {"linker_id": "linker.test", "timeout_s": 1}
             self.assertEqual(client.post("/api/v1/discovery/sessions", json=body).status_code, 401)
@@ -398,7 +419,7 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(client.get("/auth").status_code, 404)
 
     def test_invalid_brightness_is_rejected_and_disconnected_linker_is_not_success(self) -> None:
-        with TestClient(create_app(ServerSettings())) as client:
+        with TestClient(create_linker_app()) as client:
             invalid = envelope(
                 "light.command.brightness",
                 "client.dashboard",

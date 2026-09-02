@@ -36,6 +36,10 @@ class LinkerRegistry:
         with self._lock:
             return [self._copy(entry) for entry in sorted(self._entries.values(), key=lambda item: item.id)]
 
+    def is_registered(self, linker_id: str) -> bool:
+        with self._lock:
+            return linker_id in self._entries
+
     def add(self, linker_id: str, name: str) -> LinkerEntry:
         with self._lock:
             if linker_id in self._entries:

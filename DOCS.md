@@ -82,6 +82,9 @@ The active runtime exposes these transport adapters over the same v1 model:
   `light.state.reported`, `command.result`, and discovery reply envelopes;
 - `WS /api/v1/events` publishes canonical `light.updated` event envelopes.
 
+The admin must add the Linker identity before its WebSocket connection is
+accepted; the Linker path ID and `link.register` payload ID must match it.
+
 The Linker WS is a message endpoint, not a device protocol adapter. The server
 validates the v1 envelope, checks that the message source matches the connected
 Linker identity, and updates only the abstract Light registry. Commands are

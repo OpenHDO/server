@@ -499,6 +499,9 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         if not _token_matches(websocket.headers, settings.api_token):
             await websocket.close(code=4401, reason="authorization required")
             return
+        if not linker_registry.is_registered(linker_id):
+            await websocket.close(code=1008, reason="linker must be added by an admin first")
+            return
         await connections.attach(linker_id, websocket)
         registered = False
         try:

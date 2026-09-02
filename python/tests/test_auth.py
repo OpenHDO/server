@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
 import unittest
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
@@ -204,6 +206,25 @@ class AuthApiTests(unittest.TestCase):
                 self.assertEqual(added.status_code, 201)
                 self.assertFalse(added.json()["available"])
                 self.assertEqual(client.get("/api/v1/linkers").json()["linkers"][0]["name"], "Office Linker")
+                with client.websocket_connect("/api/v1/linkers/linker.office") as linker:
+                    linker.send_json(
+                        {
+                            "v": 1,
+                            "id": str(uuid4()),
+                            "type": "link.register",
+                            "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                            "source": "linker.office",
+                            "payload": {
+                                "id": "linker.office",
+                                "version": "1.0.0",
+                                "name": "Office Linker",
+                                "transports": ["local"],
+                            },
+                        }
+                    )
+                    live = client.get("/api/v1/linkers").json()["linkers"][0]
+                    self.assertTrue(live["available"])
+                    self.assertEqual(live["transports"], ["local"])
                 duplicate = client.post(
                     "/api/v1/admin/linkers",
                     json={"id": "linker.office", "name": "Office Linker"},
