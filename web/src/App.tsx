@@ -255,11 +255,19 @@ function AuthPage({
 function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; onLogin: () => void; onLogout: () => Promise<void> }) {
   const panelItems = useSyncExternalStore(subscribeToModules, getPanelModules, getPanelModules);
   const navigationItems = [...panelItems, ...builtInItems].sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER));
-  const visibleItems = navigationItems.filter((item) => !item.requiredRoles || (user && item.requiredRoles.includes(user.role)));
-  const [activeId, setActiveId] = useState<string | null>(visibleItems[0]?.id ?? null);
-  const activeItem = visibleItems.find((item) => item.id === activeId) ?? visibleItems[0];
+  const [activeId, setActiveId] = useState<string | null>(navigationItems[0]?.id ?? null);
+  const activeItem = navigationItems.find((item) => item.id === activeId) ?? navigationItems[0];
+  const selectItem = (id: string) => {
+    const item = navigationItems.find((candidate) => candidate.id === id);
+    if (!item) return;
+    if (item.requiredRoles && (!user || !item.requiredRoles.includes(user.role))) {
+      window.location.assign("/");
+      return;
+    }
+    setActiveId(id);
+  };
   const moduleContext: PanelModuleContext = {
-    navigate: setActiveId,
+    navigate: selectItem,
     api: { request: requestFromModule },
     auth: { user, login: onLogin, logout: onLogout },
   };
@@ -277,7 +285,7 @@ function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; o
       <div className="flex flex-col md:grid md:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_1fr] wide:grid-cols-[15rem_1fr]">
         <aside className="border-b border-neutral-800 px-4 py-3 min-[390px]:px-5 md:border-b-0 md:border-r md:px-3 md:py-5 wide:px-4" aria-label="Panel navigation">
           <nav className="flex gap-1 overflow-x-auto md:h-full md:flex-col" aria-label="Modules">
-            {visibleItems.map((item) => <ModuleLink key={item.id} item={item} activeId={activeId} onSelect={setActiveId} />)}
+            {navigationItems.map((item) => <ModuleLink key={item.id} item={item} activeId={activeId} onSelect={selectItem} />)}
           </nav>
         </aside>
 
