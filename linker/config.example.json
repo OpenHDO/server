@@ -7,7 +7,7 @@
   "linker": {
     "id": "openhdo.linker.rgb-light",
     "version": "0.3.0",
-    "name": "OpenHDO Tuya LED Linker"
+    "name": "linker-1"
   },
   "discovery": {
     "enabled": true,

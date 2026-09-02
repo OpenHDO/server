@@ -293,7 +293,6 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
       <article>
       <header className="flex items-center gap-3 px-3 py-3 min-[390px]:px-4">
         <button type="button" onClick={() => setExpanded((current) => !current)} aria-expanded={expanded} className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-accent/10 text-neutral-300"><PlugsConnected size={18} aria-hidden="true" /></span>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-neutral-100">{linker.name}</h2>
             <p className="truncate text-xs text-neutral-500">{linker.host && linker.port ? `${linker.host}:${linker.port}` : linker.id} · {linker.devices.length} {linker.devices.length === 1 ? "device" : "devices"}</p>

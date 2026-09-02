@@ -61,7 +61,7 @@ def load_config(path: Path) -> LinkerServiceConfig:
 
     linker_id = _string(linker, "id", default="openhdo.linker.rgb-light")
     linker_version = _string(linker, "version", default="0.3.0")
-    linker_name = _string(linker, "name", default="OpenHDO Tuya LED Linker")
+    linker_name = _string(linker, "name", default="linker-1")
     if not _IDENTIFIER.fullmatch(linker_id):
         raise LinkerConfigError("linker.id must be a lowercase OpenHDO identifier")
     if not _SEMVER.fullmatch(linker_version):
