@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import hmac
@@ -24,6 +25,7 @@ from .connections import LightEventHub, LinkerConnections
 from .auth import AuthConflict, AuthStore, UserRecord
 from .logging import configure_logging, log_event
 from .linkers import LinkerRegistry, LinkerRegistryConflict
+from .linker_client import LinkerConnector, OutboundLinkerSocket
 from .models import (
     AuthResponse,
     AuthUser,
@@ -152,9 +154,12 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             "server.startup",
             {"runtime": "python", "instance_name": settings.instance_name, "host": settings.host, "port": settings.port},
         )
+        connector_task = asyncio.create_task(outbound_connector.run())
         try:
             yield
         finally:
+            connector_task.cancel()
+            await asyncio.gather(connector_task, return_exceptions=True)
             await discovery_service.close()
             auth_store.close()
             log_event(logger, logging.INFO, "server.shutdown", {"instance_name": settings.instance_name})
@@ -254,10 +259,73 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                     version=manifest.version if manifest else None,
                     transports=manifest.transports if manifest else [],
                     available=await connections.is_connected(linker_id),
+                    host=entry.host if entry else None,
+                    port=entry.port if entry else None,
                     devices=devices,
                 )
             )
         return LinkersResponse(linkers=views)
+
+    async def process_linker_messages(linker_id: str, socket, registration_key: str | None = None) -> None:
+        registered = False
+        attached = registration_key is None
+        try:
+            while True:
+                raw_message = await socket.receive_json()
+                try:
+                    message = _validate_linker_message(raw_message)
+                except ValidationError as error:
+                    await socket.close(code=1003, reason=f"invalid v1 linker envelope: {error}")
+                    return
+                if registration_key is not None and not registered:
+                    if not isinstance(message, LinkRegisterEnvelope) or message.source != message.payload.id:
+                        await socket.close(code=1008, reason="link.register with matching linker id is required first")
+                        return
+                    linker_id = message.payload.id
+                elif message.source != linker_id:
+                    await socket.close(code=1008, reason="message source does not match linker path")
+                    return
+                try:
+                    if isinstance(message, LinkRegisterEnvelope):
+                        if registration_key is not None:
+                            linker_registry.update_manifest(message.payload, registration_key)
+                        await service.register_linker(linker_id, message)
+                        if registration_key is None:
+                            linker_registry.update_manifest(message.payload)
+                        if not attached:
+                            await connections.attach_existing(linker_id, socket)
+                            attached = True
+                        registered = True
+                    elif not registered:
+                        await socket.close(code=1008, reason="link.register is required first")
+                        return
+                    elif isinstance(message, LightStateReportedEnvelope):
+                        await service.ingest_state(linker_id, message)
+                    elif isinstance(message, DiscoveryCandidateEnvelope):
+                        await discovery_service.ingest_candidate(linker_id, message)
+                    elif isinstance(message, DiscoveryCompletedEnvelope):
+                        await discovery_service.ingest_completed(linker_id, message)
+                    else:
+                        await service.ingest_result(linker_id, message)
+                except LinkerRegistryConflict as error:
+                    await socket.close(code=1008, reason=str(error))
+                    return
+                except ServiceError as error:
+                    log_event(
+                        logger,
+                        logging.WARNING,
+                        "linker.message_rejected",
+                        {"linker_id": linker_id, "error": error.code},
+                    )
+                    await socket.close(code=1008, reason=error.detail)
+                    return
+        except WebSocketDisconnect:
+            pass
+        finally:
+            if attached:
+                was_current = await connections.detach(linker_id, socket)
+                if was_current:
+                    await discovery_service.linker_disconnected(linker_id)
 
     @application.post("/api/v1/auth/login", response_model=AuthResponse)
     async def login(request: Request, credentials: LoginRequest, response: Response) -> AuthResponse:
@@ -353,10 +421,16 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     )
     async def add_linker(request: LinkerCreateRequest) -> LinkerView:
         try:
-            linker_registry.add(request.id, request.name)
+            entry = linker_registry.add_connection(request.host, request.port, request.minisecret)
         except LinkerRegistryConflict as error:
             raise ServiceError(409, "linker_conflict", str(error)) from error
-        return LinkerView(id=request.id, name=request.name, available=await connections.is_connected(request.id))
+        return LinkerView(
+            id=entry.id,
+            name=entry.name,
+            available=await connections.is_connected(entry.id),
+            host=entry.host,
+            port=entry.port,
+        )
 
     @application.get("/api/v1/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
@@ -503,49 +577,12 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             await websocket.close(code=1008, reason="linker must be added by an admin first")
             return
         await connections.attach(linker_id, websocket)
-        registered = False
-        try:
-            while True:
-                raw_message = await websocket.receive_json()
-                try:
-                    message = _validate_linker_message(raw_message)
-                except ValidationError as error:
-                    await websocket.close(code=1003, reason=f"invalid v1 linker envelope: {error}")
-                    return
-                if message.source != linker_id:
-                    await websocket.close(code=1008, reason="message source does not match linker path")
-                    return
-                try:
-                    if isinstance(message, LinkRegisterEnvelope):
-                        await service.register_linker(linker_id, message)
-                        linker_registry.update_manifest(message.payload)
-                        registered = True
-                    elif not registered:
-                        await websocket.close(code=1008, reason="link.register is required first")
-                        return
-                    elif isinstance(message, LightStateReportedEnvelope):
-                        await service.ingest_state(linker_id, message)
-                    elif isinstance(message, DiscoveryCandidateEnvelope):
-                        await discovery_service.ingest_candidate(linker_id, message)
-                    elif isinstance(message, DiscoveryCompletedEnvelope):
-                        await discovery_service.ingest_completed(linker_id, message)
-                    else:
-                        await service.ingest_result(linker_id, message)
-                except ServiceError as error:
-                    log_event(
-                        logger,
-                        logging.WARNING,
-                        "linker.message_rejected",
-                        {"linker_id": linker_id, "error": error.code},
-                    )
-                    await websocket.close(code=1008, reason=error.detail)
-                    return
-        except WebSocketDisconnect:
-            pass
-        finally:
-            was_current = await connections.detach(linker_id, websocket)
-            if was_current:
-                await discovery_service.linker_disconnected(linker_id)
+        await process_linker_messages(linker_id, websocket)
+
+    async def handle_outbound_linker(entry, socket: OutboundLinkerSocket) -> None:
+        await process_linker_messages(entry.id, socket, registration_key=entry.key)
+
+    outbound_connector = LinkerConnector(linker_registry, handle_outbound_linker, logger)
 
     if application.state.admin_panel_available:
         @application.api_route("/", methods=["GET"], include_in_schema=False)

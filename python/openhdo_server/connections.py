@@ -18,6 +18,9 @@ class LinkerConnections:
 
     async def attach(self, linker_id: str, websocket: WebSocket) -> None:
         await websocket.accept()
+        await self.attach_existing(linker_id, websocket)
+
+    async def attach_existing(self, linker_id: str, websocket: WebSocket) -> None:
         async with self._lock:
             previous = self._connections.get(linker_id)
             self._connections[linker_id] = websocket

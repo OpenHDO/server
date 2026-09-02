@@ -25,6 +25,8 @@ type Linker = {
   version: string | null;
   transports: string[];
   available: boolean;
+  host: string | null;
+  port: number | null;
   devices: LinkerDevice[];
 };
 
@@ -40,8 +42,9 @@ function ConnectorModule({ context }: PanelModuleProps) {
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
-  const [linkerId, setLinkerId] = useState("");
-  const [linkerName, setLinkerName] = useState("");
+  const [linkerHost, setLinkerHost] = useState("");
+  const [linkerPort, setLinkerPort] = useState("");
+  const [minisecret, setMinisecret] = useState("");
   const [actionPending, setActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -84,13 +87,14 @@ function ConnectorModule({ context }: PanelModuleProps) {
       const response = await context.api.request("/api/v1/admin/linkers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: linkerId, name: linkerName }),
+        body: JSON.stringify({ host: linkerHost, port: Number(linkerPort), minisecret }),
       });
       if (!response.ok) throw new Error(await readError(response));
       const added = (await response.json()) as Linker;
       setLinkers((current) => [...current.filter((item) => item.id !== added.id), added].sort((left, right) => left.id.localeCompare(right.id)));
-      setLinkerId("");
-      setLinkerName("");
+      setLinkerHost("");
+      setLinkerPort("");
+      setMinisecret("");
       setShowAdd(false);
       setSuccess("Linker added");
     } catch (error) {
@@ -126,12 +130,16 @@ function ConnectorModule({ context }: PanelModuleProps) {
           </div>
           <form className="mt-5 grid gap-4" onSubmit={(event) => void addLinker(event)}>
             <label className="grid gap-2 text-sm text-neutral-300">
-              Linker ID
-              <input autoFocus required pattern="[a-z][a-z0-9._-]{1,63}" value={linkerId} onChange={(event) => setLinkerId(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
+              IP address
+              <input autoFocus required value={linkerHost} onChange={(event) => setLinkerHost(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
             </label>
             <label className="grid gap-2 text-sm text-neutral-300">
-              Name
-              <input required value={linkerName} onChange={(event) => setLinkerName(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
+              Port
+              <input required type="number" min="1" max="65535" value={linkerPort} onChange={(event) => setLinkerPort(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
+            </label>
+            <label className="grid gap-2 text-sm text-neutral-300">
+              Minisecret
+              <input required type="password" autoComplete="new-password" value={minisecret} onChange={(event) => setMinisecret(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
             </label>
             {actionError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={actionError} />}
             <div className="flex justify-end gap-2 pt-2">
@@ -163,7 +171,7 @@ function LinkerGroup({ linker }: { linker: Linker }) {
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-accent/10 text-accent-muted"><PlugsConnected size={21} aria-hidden="true" /></span>
           <div className="min-w-0">
             <h2 className="truncate font-brand text-lg font-bold text-neutral-100">{linker.name}</h2>
-            <p className="truncate text-sm text-neutral-500">{linker.id} · {linker.version ? `v${linker.version}` : "not registered"}</p>
+            <p className="truncate text-sm text-neutral-500">{linker.host && linker.port ? `${linker.host}:${linker.port}` : linker.id} · {linker.version ? `v${linker.version}` : "not connected"}</p>
           </div>
         </div>
         <span className={`inline-flex items-center gap-2 text-sm ${linker.available ? "text-accent-muted" : "text-neutral-500"}`}>

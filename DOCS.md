@@ -67,7 +67,7 @@ applicable; no vendor/model/local-key fields are valid server capability data.
 The active runtime exposes these transport adapters over the same v1 model:
 
 - `GET /api/v1/health` is the unauthenticated liveness response;
-- `POST /api/v1/admin/linkers` registers a Linker identity for the admin panel;
+- `POST /api/v1/admin/linkers` registers a Linker endpoint for the admin panel;
 - `GET /api/v1/linkers` reads registered Linker manifests, live connection
   availability, and their canonical Light devices;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}` read canonical state;
@@ -78,12 +78,14 @@ The active runtime exposes these transport adapters over the same v1 model:
   process-local state;
 - `PATCH /api/v1/lights/{id}` adapts one `power`, `brightness`, or `rgb_color`
   change plus an idempotency key into that same typed command path;
-- `WS /api/v1/linkers/{linker_id}` accepts `link.register`,
-  `light.state.reported`, `command.result`, and discovery reply envelopes;
+- `WS /api/v1/linker` is opened by the server for a configured Linker and
+  accepts the same v1 envelopes;
+- `WS /api/v1/linkers/{linker_id}` remains the legacy Linker-initiated path;
 - `WS /api/v1/events` publishes canonical `light.updated` event envelopes.
 
-The admin must add the Linker identity before its WebSocket connection is
-accepted; the Linker path ID and `link.register` payload ID must match it.
+The admin must add the Linker endpoint before the server connects. The Linker
+must verify the `X-OpenHDO-Minisecret` header and send `link.register` first;
+its `source` and manifest ID must match.
 
 The Linker WS is a message endpoint, not a device protocol adapter. The server
 validates the v1 envelope, checks that the message source matches the connected

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from ipaddress import ip_address
 import json
 from pathlib import Path
 from threading import RLock
+from uuid import uuid4
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -18,8 +20,12 @@ class LinkerRegistryConflict(Exception):
 
 @dataclass(frozen=True)
 class LinkerEntry:
+    key: str
     id: str
     name: str
+    host: str | None = None
+    port: int | None = None
+    minisecret: str | None = None
     manifest: LinkManifest | None = None
 
 
@@ -36,25 +42,64 @@ class LinkerRegistry:
         with self._lock:
             return [self._copy(entry) for entry in sorted(self._entries.values(), key=lambda item: item.id)]
 
+    def connection_entries(self) -> list[LinkerEntry]:
+        with self._lock:
+            return [
+                self._copy(entry)
+                for entry in sorted(self._entries.values(), key=lambda item: item.key)
+                if entry.host is not None and entry.port is not None and entry.minisecret is not None
+            ]
+
     def is_registered(self, linker_id: str) -> bool:
         with self._lock:
-            return linker_id in self._entries
+            return any(entry.id == linker_id for entry in self._entries.values())
 
     def add(self, linker_id: str, name: str) -> LinkerEntry:
         with self._lock:
-            if linker_id in self._entries:
+            if any(entry.id == linker_id for entry in self._entries.values()):
                 raise LinkerRegistryConflict("linker is already registered")
-            entry = LinkerEntry(id=linker_id, name=name)
-            self._entries[linker_id] = entry
+            entry = LinkerEntry(key=linker_id, id=linker_id, name=name)
+            self._entries[entry.key] = entry
             self._save()
             return entry
 
-    def update_manifest(self, manifest: LinkManifest) -> None:
+    def add_connection(self, host: str, port: int, minisecret: str) -> LinkerEntry:
         with self._lock:
-            current = self._entries.get(manifest.id)
+            if any(entry.host == host and entry.port == port for entry in self._entries.values()):
+                raise LinkerRegistryConflict("linker endpoint is already registered")
+            key = f"linker.{uuid4().hex}"
+            entry = LinkerEntry(
+                key=key,
+                id=key,
+                name=f"{host}:{port}",
+                host=host,
+                port=port,
+                minisecret=minisecret,
+            )
+            self._entries[entry.key] = entry
+            self._save()
+            return entry
+
+    def update_manifest(self, manifest: LinkManifest, key: str | None = None) -> None:
+        with self._lock:
+            entry_key = key or next(
+                (entry.key for entry in self._entries.values() if entry.id == manifest.id),
+                None,
+            )
+            current = self._entries.get(entry_key) if entry_key else None
             if current is None:
                 return
-            self._entries[manifest.id] = LinkerEntry(id=manifest.id, name=manifest.name, manifest=manifest)
+            if any(entry.key != current.key and entry.id == manifest.id for entry in self._entries.values()):
+                raise LinkerRegistryConflict("linker identity is already registered")
+            self._entries[current.key] = LinkerEntry(
+                key=current.key,
+                id=manifest.id,
+                name=manifest.name,
+                host=current.host,
+                port=current.port,
+                minisecret=current.minisecret,
+                manifest=manifest,
+            )
             self._save()
 
     def _load(self) -> None:
@@ -81,7 +126,35 @@ class LinkerRegistry:
                     manifest = LinkManifest.model_validate(raw_entry["manifest"])
                 except ValidationError:
                     continue
-            self._entries[linker_id] = LinkerEntry(id=linker_id, name=name, manifest=manifest)
+            key = raw_entry.get("key", linker_id)
+            host = raw_entry.get("host")
+            port = raw_entry.get("port")
+            minisecret = raw_entry.get("minisecret")
+            if not isinstance(key, str) or not key:
+                continue
+            if host is not None or port is not None or minisecret is not None:
+                if (
+                    not isinstance(host, str)
+                    or not isinstance(port, int)
+                    or isinstance(port, bool)
+                    or not 1 <= port <= 65535
+                    or not isinstance(minisecret, str)
+                    or not minisecret
+                ):
+                    continue
+                try:
+                    host = str(ip_address(host))
+                except ValueError:
+                    continue
+            self._entries[key] = LinkerEntry(
+                key=key,
+                id=linker_id,
+                name=name,
+                host=host,
+                port=port,
+                minisecret=minisecret,
+                manifest=manifest,
+            )
 
     def _save(self) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
@@ -91,11 +164,15 @@ class LinkerRegistry:
                     "version": 1,
                     "linkers": [
                         {
+                            "key": entry.key,
                             "id": entry.id,
                             "name": entry.name,
+                            "host": entry.host,
+                            "port": entry.port,
+                            "minisecret": entry.minisecret,
                             "manifest": entry.manifest.model_dump(mode="json") if entry.manifest else None,
                         }
-                        for entry in sorted(self._entries.values(), key=lambda item: item.id)
+                        for entry in sorted(self._entries.values(), key=lambda item: item.key)
                     ],
                 },
                 ensure_ascii=False,
@@ -108,7 +185,11 @@ class LinkerRegistry:
     @staticmethod
     def _copy(entry: LinkerEntry) -> LinkerEntry:
         return LinkerEntry(
+            key=entry.key,
             id=entry.id,
             name=entry.name,
+            host=entry.host,
+            port=entry.port,
+            minisecret=entry.minisecret,
             manifest=entry.manifest.model_copy(deep=True) if entry.manifest else None,
         )

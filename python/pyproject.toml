@@ -11,6 +11,7 @@ dependencies = [
   "fastapi>=0.115,<1",
   "pydantic>=2.9,<3",
   "uvicorn[standard]>=0.34,<1",
+  "websockets>=13,<17",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -22,7 +23,6 @@ classifiers = [
 dev = [
   "httpx>=0.28,<1",
   "pytest>=8,<10",
-  "websockets>=13,<17",
 ]
 
 [project.scripts]

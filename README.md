@@ -70,7 +70,8 @@ The v1 API currently includes:
   `GET /api/v1/auth/me`, and `POST /api/v1/auth/logout` for browser sessions;
 - `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{id}`, and
   `DELETE /api/v1/admin/users/{id}` for admin-only user and role management;
-- `POST /api/v1/admin/linkers` for admin-side Linker registration;
+- `POST /api/v1/admin/linkers` for admin-side Linker endpoint registration
+  (`host`, `port`, and `minisecret`);
 - `GET /api/v1/linkers` for registered Linker manifests, live availability, and
   their abstract Light devices;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}`;
@@ -81,8 +82,10 @@ The v1 API currently includes:
   `GET /api/v1/discovery/sessions/{session_id}` for authenticated, transient
   discovery sessions;
 - `WS /api/v1/events` for `light.updated`;
-- `WS /api/v1/linkers/{linker_id}` for `link.register`, state reports, command
-  results, and `discovery.candidate`/`discovery.completed` replies.
+- `WS /api/v1/linker` is the server-initiated Linker connection; the Linker
+  sends `link.register` first, then state reports and discovery replies, while
+  the server sends commands and discovery starts;
+- `WS /api/v1/linkers/{linker_id}` remains the legacy Linker-initiated path.
 
 Discovery starts are forwarded on the connected Linker WebSocket as
 `discovery.start`. The server correlates replies to that envelope's `id`, keeps

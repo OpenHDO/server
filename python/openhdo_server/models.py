@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from ipaddress import ip_address
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -118,6 +119,8 @@ class LinkerView(StrictModel):
     version: str | None = Field(default=None, pattern=r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
     transports: list[Transport] = Field(default_factory=list)
     available: bool
+    host: str | None = None
+    port: int | None = Field(default=None, ge=1, le=65535)
     devices: list[LightView] = Field(default_factory=list)
 
 
@@ -356,8 +359,17 @@ class LinkersResponse(StrictModel):
 
 
 class LinkerCreateRequest(StrictModel):
-    id: Identifier
-    name: str = Field(min_length=1, max_length=128)
+    host: str = Field(min_length=1, max_length=45)
+    port: StrictInt = Field(ge=1, le=65535)
+    minisecret: str = Field(min_length=1, max_length=256)
+
+    @field_validator("host")
+    @classmethod
+    def normalize_host(cls, value: str) -> str:
+        try:
+            return str(ip_address(value))
+        except ValueError as error:
+            raise ValueError("host must be an IP address") from error
 
 
 class DiscoverySessionResponse(StrictModel):

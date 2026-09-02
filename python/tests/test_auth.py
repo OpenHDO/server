@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
 import unittest
-from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
@@ -200,34 +198,19 @@ class AuthApiTests(unittest.TestCase):
                 csrf = client.cookies.get("openhdo_csrf")
                 added = client.post(
                     "/api/v1/admin/linkers",
-                    json={"id": "linker.office", "name": "Office Linker"},
+                    json={"host": "127.0.0.1", "port": 8765, "minisecret": "office-secret"},
                     headers={"X-OpenHDO-CSRF": csrf},
                 )
                 self.assertEqual(added.status_code, 201)
                 self.assertFalse(added.json()["available"])
-                self.assertEqual(client.get("/api/v1/linkers").json()["linkers"][0]["name"], "Office Linker")
-                with client.websocket_connect("/api/v1/linkers/linker.office") as linker:
-                    linker.send_json(
-                        {
-                            "v": 1,
-                            "id": str(uuid4()),
-                            "type": "link.register",
-                            "ts": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-                            "source": "linker.office",
-                            "payload": {
-                                "id": "linker.office",
-                                "version": "1.0.0",
-                                "name": "Office Linker",
-                                "transports": ["local"],
-                            },
-                        }
-                    )
-                    live = client.get("/api/v1/linkers").json()["linkers"][0]
-                    self.assertTrue(live["available"])
-                    self.assertEqual(live["transports"], ["local"])
+                added_payload = added.json()
+                self.assertEqual(added_payload["host"], "127.0.0.1")
+                self.assertEqual(added_payload["port"], 8765)
+                self.assertNotIn("minisecret", added_payload)
+                self.assertEqual(client.get("/api/v1/linkers").json()["linkers"][0]["host"], "127.0.0.1")
                 duplicate = client.post(
                     "/api/v1/admin/linkers",
-                    json={"id": "linker.office", "name": "Office Linker"},
+                    json={"host": "127.0.0.1", "port": 8765, "minisecret": "office-secret"},
                     headers={"X-OpenHDO-CSRF": csrf},
                 )
                 self.assertEqual(duplicate.status_code, 409)

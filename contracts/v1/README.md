@@ -70,6 +70,20 @@ runtime or HTTP/WebSocket transport, and are intentionally independent of the
 server implementation language. New message types should be added with an
 example and a compatibility test.
 
+## Server-initiated Linker connection
+
+The server can connect to a real Linker configured by an admin. The endpoint
+registration body is `{ "host": "<IP>", "port": <port>, "minisecret": "<secret>" }`.
+The server opens `ws://<host>:<port>/api/v1/linker` and sends the
+`X-OpenHDO-Minisecret` header. The Linker verifies that header and sends a
+`link.register` envelope first. Its `source` and manifest `id` must match.
+
+After registration, both sides use the existing v1 envelopes: the Linker
+sends state, command-result, and discovery-reply messages; the server sends
+light commands and discovery starts. A lost connection is retried after five
+seconds. The Linker endpoint is a real runtime boundary; the server does not
+manufacture device or Linker data.
+
 ## Discovery v1
 
 [`discovery.schema.json`](discovery.schema.json) defines the server-owned
