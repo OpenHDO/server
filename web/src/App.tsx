@@ -1,4 +1,5 @@
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { GearSix } from "@phosphor-icons/react/GearSix";
 import { SignIn } from "@phosphor-icons/react/SignIn";
 import { SignOut } from "@phosphor-icons/react/SignOut";
 import { UserPlus } from "@phosphor-icons/react/UserPlus";
@@ -6,6 +7,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { getPanelModules, subscribeToModules } from "./modules/load";
 import type { PanelAuthUser, PanelModule, PanelModuleContext } from "./modules/registry";
+import SettingsView from "./builtins/settings";
 
 type AuthMode = "login" | "register";
 type AuthState =
@@ -13,9 +15,20 @@ type AuthState =
   | { status: "guest"; user: null }
   | { status: "authenticated"; user: PanelAuthUser };
 type ApiError = { detail?: string };
+type PanelNavigationItem = {
+  id: string;
+  label: string;
+  icon: PanelModule["icon"];
+  component: PanelModule["component"];
+  requiredRoles?: PanelModule["requiredRoles"];
+  order?: number;
+};
 
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const authPage = window.location.pathname === "/auth" || window.location.pathname === "/auth/";
+const builtInItems: PanelNavigationItem[] = [
+  { id: "settings", label: "Settings", icon: GearSix, component: SettingsView, requiredRoles: ["admin"], order: 40 },
+];
 
 function cookieValue(name: string) {
   const prefix = `${name}=`;
@@ -237,7 +250,8 @@ function AuthPage({
 
 function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; onLogin: () => void; onLogout: () => Promise<void> }) {
   const panelItems = useSyncExternalStore(subscribeToModules, getPanelModules, getPanelModules);
-  const visibleItems = panelItems.filter((item) => !item.requiredRoles || (user && item.requiredRoles.includes(user.role)));
+  const navigationItems = [...panelItems, ...builtInItems].sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER));
+  const visibleItems = navigationItems.filter((item) => !item.requiredRoles || (user && item.requiredRoles.includes(user.role)));
   const [activeId, setActiveId] = useState<string | null>(visibleItems[0]?.id ?? null);
   const activeItem = visibleItems.find((item) => item.id === activeId) ?? visibleItems[0];
   const moduleContext: PanelModuleContext = {
@@ -342,7 +356,7 @@ function avatarInitials(username: string) {
   return (parts.length > 1 ? `${parts[0][0]}${parts[1][0]}` : parts[0]?.slice(0, 2) ?? "?").toUpperCase();
 }
 
-function ModuleLink({ item, activeId, onSelect }: { item: PanelModule; activeId: string | null; onSelect: (id: string) => void }) {
+function ModuleLink({ item, activeId, onSelect }: { item: PanelNavigationItem; activeId: string | null; onSelect: (id: string) => void }) {
   const active = item.id === activeId;
   const Icon = item.icon;
   return (

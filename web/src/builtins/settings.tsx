@@ -2,15 +2,9 @@ import { useEffect, useState, type FormEvent } from "react";
 
 import { Check } from "@phosphor-icons/react/Check";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
-import { GearSix } from "@phosphor-icons/react/GearSix";
 import { UserPlus } from "@phosphor-icons/react/UserPlus";
 import { WarningCircle } from "@phosphor-icons/react/WarningCircle";
-import {
-  registerModule,
-  type PanelAuthUser,
-  type PanelModuleProps,
-  type PanelUserRole,
-} from "../registry";
+import type { PanelAuthUser, PanelModuleContext, PanelUserRole } from "../modules/registry";
 
 const roles: PanelUserRole[] = ["admin", "operator", "viewer"];
 
@@ -21,7 +15,7 @@ async function readError(response: Response) {
   return payload?.detail ?? `Request failed (${response.status})`;
 }
 
-function SettingsModule({ context }: PanelModuleProps) {
+export default function SettingsView({ context }: { context: PanelModuleContext }) {
   const [users, setUsers] = useState<PanelAuthUser[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -202,12 +196,3 @@ function StatusMessage({ tone, message }: { tone: "loading" | "empty" | "error" 
   const color = tone === "error" ? "text-red-300" : tone === "success" ? "text-accent-muted" : "text-neutral-500";
   return <div className={`flex items-center gap-2 border-y border-neutral-800 py-4 text-sm ${color}`}>{icon}{message}</div>;
 }
-
-registerModule({
-  id: "settings",
-  label: "Settings",
-  icon: GearSix,
-  order: 40,
-  requiredRoles: ["admin"],
-  component: SettingsModule,
-});
