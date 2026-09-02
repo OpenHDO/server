@@ -115,10 +115,10 @@ class LightRecord(LightView):
 class LinkerView(StrictModel):
     id: Identifier
     name: str = Field(min_length=1, max_length=128)
-    version: str = Field(pattern=r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
-    transports: list[Transport]
+    version: str | None = Field(default=None, pattern=r"^[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$")
+    transports: list[Transport] = Field(default_factory=list)
     available: bool
-    devices: list[LightView]
+    devices: list[LightView] = Field(default_factory=list)
 
 
 class CommandBase(StrictModel):
@@ -353,6 +353,11 @@ class LightsResponse(StrictModel):
 class LinkersResponse(StrictModel):
     api_version: Literal[1] = 1
     linkers: list[LinkerView]
+
+
+class LinkerCreateRequest(StrictModel):
+    id: Identifier
+    name: str = Field(min_length=1, max_length=128)
 
 
 class DiscoverySessionResponse(StrictModel):

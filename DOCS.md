@@ -67,6 +67,7 @@ applicable; no vendor/model/local-key fields are valid server capability data.
 The active runtime exposes these transport adapters over the same v1 model:
 
 - `GET /api/v1/health` is the unauthenticated liveness response;
+- `POST /api/v1/admin/linkers` registers a Linker identity for the admin panel;
 - `GET /api/v1/linkers` reads registered Linker manifests, live connection
   availability, and their canonical Light devices;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}` read canonical state;

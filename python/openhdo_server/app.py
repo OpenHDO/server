@@ -23,6 +23,7 @@ from .config import ServerSettings, load_settings
 from .connections import LightEventHub, LinkerConnections
 from .auth import AuthConflict, AuthStore, UserRecord
 from .logging import configure_logging, log_event
+from .linkers import LinkerRegistry, LinkerRegistryConflict
 from .models import (
     AuthResponse,
     AuthUser,
@@ -38,6 +39,7 @@ from .models import (
     LightStateReportedEnvelope,
     LightUpdatedEnvelope,
     Identifier,
+    LinkerCreateRequest,
     LinkRegisterEnvelope,
     LinkerEnvelope,
     LinkerView,
@@ -122,6 +124,10 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     discovery_repository = InMemoryDiscoverySessionRepository()
     connections = LinkerConnections()
     events = LightEventHub()
+    linker_registry = LinkerRegistry(Path(settings.data_dir) / "modules" / "connector" / "linkers.json")
+    for entry in linker_registry.list():
+        if entry.manifest is not None:
+            repository.register_linker(entry.manifest.id, entry.manifest)
     auth_store = AuthStore(settings.auth_db_path)
     auth_store.ensure_bootstrap_admin(settings.admin_username, settings.admin_password)
     service = LightService(
@@ -167,6 +173,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     application.state.discovery_service = discovery_service
     application.state.connections = connections
     application.state.auth_store = auth_store
+    application.state.linker_registry = linker_registry
     web_dist = Path(__file__).resolve().parents[2] / "web" / "dist"
     admin_index = web_dist / "index.html"
     application.state.admin_panel_available = admin_index.is_file()
@@ -230,6 +237,27 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         if user is None:
             raise ServiceError(401, "authorization_required", "a valid admin session is required")
         return user
+
+    async def linker_list_response() -> LinkersResponse:
+        lights = service.list_lights()
+        manifests = {manifest.id: manifest for manifest in service.list_linkers()}
+        entries = {entry.id: entry for entry in linker_registry.list()}
+        views: list[LinkerView] = []
+        for linker_id in sorted(set(manifests) | set(entries)):
+            entry = entries.get(linker_id)
+            manifest = manifests.get(linker_id) or (entry.manifest if entry else None)
+            devices = [light for light in lights if light.linker_id == linker_id]
+            views.append(
+                LinkerView(
+                    id=linker_id,
+                    name=manifest.name if manifest else entry.name,
+                    version=manifest.version if manifest else None,
+                    transports=manifest.transports if manifest else [],
+                    available=await connections.is_connected(linker_id),
+                    devices=devices,
+                )
+            )
+        return LinkersResponse(linkers=views)
 
     @application.post("/api/v1/auth/login", response_model=AuthResponse)
     async def login(request: Request, credentials: LoginRequest, response: Response) -> AuthResponse:
@@ -317,6 +345,19 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             raise ServiceError(status_code, "auth_conflict", str(error)) from error
         return Response(status_code=204)
 
+    @application.post(
+        "/api/v1/admin/linkers",
+        response_model=LinkerView,
+        status_code=201,
+        dependencies=[Depends(require_admin), Depends(require_csrf)],
+    )
+    async def add_linker(request: LinkerCreateRequest) -> LinkerView:
+        try:
+            linker_registry.add(request.id, request.name)
+        except LinkerRegistryConflict as error:
+            raise ServiceError(409, "linker_conflict", str(error)) from error
+        return LinkerView(id=request.id, name=request.name, available=await connections.is_connected(request.id))
+
     @application.get("/api/v1/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
         return HealthResponse(
@@ -330,20 +371,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
 
     @application.get("/api/v1/linkers", response_model=LinkersResponse, dependencies=[Depends(require_authorization)])
     async def list_linkers() -> LinkersResponse:
-        lights = service.list_lights()
-        return LinkersResponse(
-            linkers=[
-                LinkerView(
-                    id=manifest.id,
-                    name=manifest.name,
-                    version=manifest.version,
-                    transports=manifest.transports,
-                    available=await connections.is_connected(manifest.id),
-                    devices=[light for light in lights if light.linker_id == manifest.id],
-                )
-                for manifest in service.list_linkers()
-            ]
-        )
+        return await linker_list_response()
 
     @application.get(
         "/api/v1/lights/{light_id}",
@@ -487,6 +515,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                 try:
                     if isinstance(message, LinkRegisterEnvelope):
                         await service.register_linker(linker_id, message)
+                        linker_registry.update_manifest(message.payload)
                         registered = True
                     elif not registered:
                         await websocket.close(code=1008, reason="link.register is required first")

@@ -15,7 +15,8 @@ class SettingsError(ValueError):
     """Raised when server configuration cannot be loaded safely."""
 
 
-_DEFAULT_AUTH_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "openhdo-auth.sqlite3"
+_DEFAULT_DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+_DEFAULT_AUTH_DB_PATH = _DEFAULT_DATA_DIR / "openhdo-auth.sqlite3"
 
 
 class ServerSettings(BaseModel):
@@ -30,6 +31,7 @@ class ServerSettings(BaseModel):
     log_level: Literal["trace", "debug", "info", "warn", "error"] = "info"
     api_token: str | None = Field(default=None, min_length=8)
     cors_origins: tuple[str, ...] = ()
+    data_dir: str = str(_DEFAULT_DATA_DIR)
     auth_db_path: str = str(_DEFAULT_AUTH_DB_PATH)
     admin_username: str | None = Field(default=None, min_length=1, max_length=64)
     admin_password: str | None = Field(default=None, min_length=8, max_length=256)

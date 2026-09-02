@@ -70,6 +70,7 @@ The v1 API currently includes:
   `GET /api/v1/auth/me`, and `POST /api/v1/auth/logout` for browser sessions;
 - `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{id}`, and
   `DELETE /api/v1/admin/users/{id}` for admin-only user and role management;
+- `POST /api/v1/admin/linkers` for admin-side Linker registration;
 - `GET /api/v1/linkers` for registered Linker manifests, live availability, and
   their abstract Light devices;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}`;
