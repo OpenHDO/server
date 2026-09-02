@@ -18,6 +18,10 @@ class LinkerRegistryConflict(Exception):
     """The requested Linker registration conflicts with existing data."""
 
 
+class LinkerRegistryNotFound(Exception):
+    """The requested Linker registration does not exist."""
+
+
 @dataclass(frozen=True)
 class LinkerEntry:
     key: str
@@ -27,6 +31,7 @@ class LinkerEntry:
     port: int | None = None
     minisecret: str | None = None
     manifest: LinkManifest | None = None
+    name_override: str | None = None
 
 
 class LinkerRegistry:
@@ -94,13 +99,42 @@ class LinkerRegistry:
             self._entries[current.key] = LinkerEntry(
                 key=current.key,
                 id=manifest.id,
-                name=manifest.name,
+                name=current.name_override or manifest.name,
                 host=current.host,
                 port=current.port,
                 minisecret=current.minisecret,
                 manifest=manifest,
+                name_override=current.name_override,
             )
             self._save()
+
+    def rename(self, linker_id: str, name: str) -> LinkerEntry:
+        with self._lock:
+            current = next((entry for entry in self._entries.values() if entry.id == linker_id), None)
+            if current is None:
+                raise LinkerRegistryNotFound("linker is not registered")
+            renamed = LinkerEntry(
+                key=current.key,
+                id=current.id,
+                name=name,
+                host=current.host,
+                port=current.port,
+                minisecret=current.minisecret,
+                manifest=current.manifest,
+                name_override=name,
+            )
+            self._entries[current.key] = renamed
+            self._save()
+            return self._copy(renamed)
+
+    def delete(self, linker_id: str) -> LinkerEntry:
+        with self._lock:
+            key = next((entry.key for entry in self._entries.values() if entry.id == linker_id), None)
+            if key is None:
+                raise LinkerRegistryNotFound("linker is not registered")
+            entry = self._entries.pop(key)
+            self._save()
+            return self._copy(entry)
 
     def _load(self) -> None:
         try:
@@ -127,6 +161,7 @@ class LinkerRegistry:
                 except ValidationError:
                     continue
             key = raw_entry.get("key", linker_id)
+            name_override = raw_entry.get("name_override")
             host = raw_entry.get("host")
             port = raw_entry.get("port")
             minisecret = raw_entry.get("minisecret")
@@ -154,6 +189,7 @@ class LinkerRegistry:
                 port=port,
                 minisecret=minisecret,
                 manifest=manifest,
+                name_override=name_override if isinstance(name_override, str) and name_override else None,
             )
 
     def _save(self) -> None:
@@ -170,6 +206,7 @@ class LinkerRegistry:
                             "host": entry.host,
                             "port": entry.port,
                             "minisecret": entry.minisecret,
+                            "name_override": entry.name_override,
                             "manifest": entry.manifest.model_dump(mode="json") if entry.manifest else None,
                         }
                         for entry in sorted(self._entries.values(), key=lambda item: item.key)
@@ -192,4 +229,5 @@ class LinkerRegistry:
             port=entry.port,
             minisecret=entry.minisecret,
             manifest=entry.manifest.model_copy(deep=True) if entry.manifest else None,
+            name_override=entry.name_override,
         )

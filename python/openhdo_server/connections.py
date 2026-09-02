@@ -37,6 +37,17 @@ class LinkerConnections:
                 return True
             return False
 
+    async def close(self, linker_id: str) -> bool:
+        async with self._lock:
+            websocket = self._connections.pop(linker_id, None)
+        if websocket is None:
+            return False
+        try:
+            await websocket.close(code=4000, reason="Linker removed by an administrator")
+        except Exception:
+            pass
+        return True
+
     async def send(self, linker_id: str, message: EnvelopeBase) -> bool:
         async with self._lock:
             websocket = self._connections.get(linker_id)

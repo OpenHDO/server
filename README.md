@@ -71,7 +71,8 @@ The v1 API currently includes:
 - `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{id}`, and
   `DELETE /api/v1/admin/users/{id}` for admin-only user and role management;
 - `POST /api/v1/admin/linkers` for admin-side Linker endpoint registration
-  (`host`, `port`, and `minisecret`);
+  (`host`, `port`, and `minisecret`); `PATCH` and `DELETE
+  /api/v1/admin/linkers/{id}` rename or remove a registered Linker;
 - `GET /api/v1/linkers` for registered Linker manifests, live availability, and
   their abstract Light devices;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}`;

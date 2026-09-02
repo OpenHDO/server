@@ -214,6 +214,20 @@ class AuthApiTests(unittest.TestCase):
                     headers={"X-OpenHDO-CSRF": csrf},
                 )
                 self.assertEqual(duplicate.status_code, 409)
+                renamed = client.patch(
+                    f"/api/v1/admin/linkers/{added_payload['id']}",
+                    json={"name": "Office Linker"},
+                    headers={"X-OpenHDO-CSRF": csrf},
+                )
+                self.assertEqual(renamed.status_code, 200)
+                self.assertEqual(renamed.json()["name"], "Office Linker")
+                self.assertEqual(client.get("/api/v1/linkers").json()["linkers"][0]["name"], "Office Linker")
+                deleted = client.delete(
+                    f"/api/v1/admin/linkers/{added_payload['id']}",
+                    headers={"X-OpenHDO-CSRF": csrf},
+                )
+                self.assertEqual(deleted.status_code, 204)
+                self.assertEqual(client.get("/api/v1/linkers").json()["linkers"], [])
             self.assertTrue((data_dir / "modules" / "connector" / "linkers.json").is_file())
 
     def test_last_active_admin_cannot_be_removed(self) -> None:

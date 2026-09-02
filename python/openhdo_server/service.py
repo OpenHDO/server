@@ -87,6 +87,9 @@ class LightService:
     def list_linkers(self) -> list[LinkManifest]:
         return self.repository.list_linkers()
 
+    def remove_linker(self, linker_id: str) -> None:
+        self.repository.remove_linker(linker_id)
+
     def get_light(self, light_id: str) -> LightRecord:
         try:
             return self.repository.get_light(light_id)

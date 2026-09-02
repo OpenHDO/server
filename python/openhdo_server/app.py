@@ -24,7 +24,7 @@ from .config import ServerSettings, load_settings
 from .connections import LightEventHub, LinkerConnections
 from .auth import AuthConflict, AuthStore, UserRecord
 from .logging import configure_logging, log_event
-from .linkers import LinkerRegistry, LinkerRegistryConflict
+from .linkers import LinkerRegistry, LinkerRegistryConflict, LinkerRegistryNotFound
 from .linker_client import LinkerConnector, OutboundLinkerSocket
 from .models import (
     AuthResponse,
@@ -42,6 +42,7 @@ from .models import (
     LightUpdatedEnvelope,
     Identifier,
     LinkerCreateRequest,
+    LinkerUpdateRequest,
     LinkRegisterEnvelope,
     LinkerEnvelope,
     LinkerView,
@@ -255,7 +256,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             views.append(
                 LinkerView(
                     id=linker_id,
-                    name=manifest.name if manifest else entry.name,
+                    name=entry.name if entry else manifest.name,
                     version=manifest.version if manifest else None,
                     transports=manifest.transports if manifest else [],
                     available=await connections.is_connected(linker_id),
@@ -431,6 +432,33 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             host=entry.host,
             port=entry.port,
         )
+
+    @application.patch(
+        "/api/v1/admin/linkers/{linker_id}",
+        response_model=LinkerView,
+        dependencies=[Depends(require_admin), Depends(require_csrf)],
+    )
+    async def update_linker(linker_id: Identifier, request: LinkerUpdateRequest) -> LinkerView:
+        try:
+            entry = linker_registry.rename(linker_id, request.name)
+        except LinkerRegistryNotFound as error:
+            raise ServiceError(404, "linker_not_found", str(error)) from error
+        response = await linker_list_response()
+        return next(item for item in response.linkers if item.id == entry.id)
+
+    @application.delete(
+        "/api/v1/admin/linkers/{linker_id}",
+        status_code=204,
+        dependencies=[Depends(require_admin), Depends(require_csrf)],
+    )
+    async def delete_linker(linker_id: Identifier) -> Response:
+        try:
+            entry = linker_registry.delete(linker_id)
+        except LinkerRegistryNotFound as error:
+            raise ServiceError(404, "linker_not_found", str(error)) from error
+        await connections.close(entry.id)
+        service.remove_linker(entry.id)
+        return Response(status_code=204)
 
     @application.get("/api/v1/health", response_model=HealthResponse)
     async def health() -> HealthResponse:

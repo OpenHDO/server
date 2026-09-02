@@ -372,6 +372,10 @@ class LinkerCreateRequest(StrictModel):
             raise ValueError("host must be an IP address") from error
 
 
+class LinkerUpdateRequest(StrictModel):
+    name: str = Field(min_length=1, max_length=128)
+
+
 class DiscoverySessionResponse(StrictModel):
     session_id: UUID
     linker_id: Identifier

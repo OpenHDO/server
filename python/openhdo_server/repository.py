@@ -109,6 +109,13 @@ class InMemoryLightRepository:
         with self._lock:
             return linker_id in self._linkers
 
+    def remove_linker(self, linker_id: str) -> None:
+        with self._lock:
+            self._linkers.pop(linker_id, None)
+            self._lights = {
+                light_id: record for light_id, record in self._lights.items() if record.linker_id != linker_id
+            }
+
     def _validate_registration(self, linker_id: str, devices: list[DeviceManifest]) -> None:
         seen: set[str] = set()
         for device in devices:

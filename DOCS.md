@@ -68,6 +68,8 @@ The active runtime exposes these transport adapters over the same v1 model:
 
 - `GET /api/v1/health` is the unauthenticated liveness response;
 - `POST /api/v1/admin/linkers` registers a Linker endpoint for the admin panel;
+- `PATCH /api/v1/admin/linkers/{id}` renames a registered Linker and `DELETE
+  /api/v1/admin/linkers/{id}` removes it and its canonical devices;
 - `GET /api/v1/linkers` reads registered Linker manifests, live connection
   availability, and their canonical Light devices;
 - `GET /api/v1/lights` and `GET /api/v1/lights/{id}` read canonical state;
