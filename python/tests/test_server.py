@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 import unittest
 import time
 from uuid import uuid4
@@ -85,7 +86,9 @@ def discovery_candidate(session_id: str, correlation_id: str, **extra: object) -
 
 class ConfigurationTests(unittest.TestCase):
     def test_defaults_are_local_and_non_local_bind_requires_token(self) -> None:
-        self.assertEqual(load_settings({}).host, "127.0.0.1")
+        settings = load_settings({})
+        self.assertEqual(settings.host, "127.0.0.1")
+        self.assertEqual(settings.auth_db_path, str(Path(__file__).resolve().parents[2] / "data" / "openhdo-auth.sqlite3"))
         with self.assertRaises(SettingsError):
             load_settings({"OPENHDO_HOST": "0.0.0.0"})
         settings = load_settings({"OPENHDO_HOST": "0.0.0.0", "OPENHDO_API_TOKEN": "long-enough-token"})

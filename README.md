@@ -43,7 +43,8 @@ variables are `OPENHDO_CONFIG_VERSION`, `OPENHDO_INSTANCE_NAME`,
 `OPENHDO_AUTH_DB`, `OPENHDO_ADMIN_USERNAME`, and `OPENHDO_ADMIN_PASSWORD`.
 Set the last two together on first startup to create the initial admin user;
 the password is hashed and the SQLite auth database is kept outside the web
-build. `OPENHDO_AUTH_DB` defaults to `openhdo-auth.sqlite3`.
+build under `data/openhdo-auth.sqlite3`. `OPENHDO_AUTH_DB` can override this
+path.
 For a standalone React app on another local origin, set
 `OPENHDO_CORS_ORIGINS` to a comma-separated list of exact origins, for
 example `http://localhost:5173,https://dashboard.example`. CORS is disabled
@@ -86,6 +87,10 @@ only abstract Wi-Fi candidates and their `requires_pairing` value, and marks a
 session failed when the Linker is unavailable, disconnects, or the bounded
 `1..60` second timeout expires. Session state is process-local and is not
 durable.
+
+Server-owned persistent runtime data lives under `data/`. Server module data
+belongs under `data/modules/<module-name>/`. Linker-owned data remains in the
+Linker data directory and is not managed by the server.
 
 ## Server admin panel
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import os
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -12,6 +13,9 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 class SettingsError(ValueError):
     """Raised when server configuration cannot be loaded safely."""
+
+
+_DEFAULT_AUTH_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "openhdo-auth.sqlite3"
 
 
 class ServerSettings(BaseModel):
@@ -26,7 +30,7 @@ class ServerSettings(BaseModel):
     log_level: Literal["trace", "debug", "info", "warn", "error"] = "info"
     api_token: str | None = Field(default=None, min_length=8)
     cors_origins: tuple[str, ...] = ()
-    auth_db_path: str = "openhdo-auth.sqlite3"
+    auth_db_path: str = str(_DEFAULT_AUTH_DB_PATH)
     admin_username: str | None = Field(default=None, min_length=1, max_length=64)
     admin_password: str | None = Field(default=None, min_length=8, max_length=256)
 

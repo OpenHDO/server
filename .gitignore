@@ -9,6 +9,9 @@ compile_commands.json
 /web/dist/
 .vite/
 
+# Runtime data
+/data/
+
 # Python
 /python/openhdo-auth.sqlite3
 /openhdo-auth.sqlite3
