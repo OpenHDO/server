@@ -13,7 +13,7 @@ class LinkerServiceConfigTests(unittest.TestCase):
             path.write_text(
                 json.dumps(
                     {
-                        "listen": {"host": "0.0.0.0", "port": 8765, "minisecret": "local-secret"},
+                        "listen": {"host": "0.0.0.0", "port": 8765, "secret": "linker1"},
                         "discovery": {"enabled": True, "timeout_s": 5},
                     }
                 ),
@@ -32,7 +32,7 @@ class LinkerServiceConfigTests(unittest.TestCase):
             path.write_text(
                 json.dumps(
                     {
-                        "listen": {"minisecret": "local-secret"},
+                        "listen": {"secret": "linker1"},
                         "discovery": {"timeout_s": 61},
                     }
                 ),

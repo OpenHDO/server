@@ -422,7 +422,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     )
     async def add_linker(request: LinkerCreateRequest) -> LinkerView:
         try:
-            entry = linker_registry.add_connection(request.host, request.port, request.minisecret)
+            entry = linker_registry.add_connection(request.host, request.port, request.secret)
         except LinkerRegistryConflict as error:
             raise ServiceError(409, "linker_conflict", str(error)) from error
         return LinkerView(

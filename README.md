@@ -71,7 +71,7 @@ The v1 API currently includes:
 - `GET /api/v1/admin/users`, `PATCH /api/v1/admin/users/{id}`, and
   `DELETE /api/v1/admin/users/{id}` for admin-only user and role management;
 - `POST /api/v1/admin/linkers` for admin-side Linker endpoint registration
-  (`host`, `port`, and `minisecret`); `PATCH` and `DELETE
+  (`host`, `port`, and `secret`); `PATCH` and `DELETE
   /api/v1/admin/linkers/{id}` rename or remove a registered Linker;
 - `GET /api/v1/linkers` for registered Linker manifests, live availability, and
   their abstract Light devices;
@@ -103,7 +103,7 @@ Linker data directory and is not managed by the server.
 
 The repository also contains the separate `linkerct` process under
 `python/openhdo_linker_service/`. It listens for the server on
-`ws://<host>:<port>/api/v1/linker`, checks `X-OpenHDO-Minisecret`, and delegates
+`ws://<host>:<port>/api/v1/linker`, checks `X-OpenHDO-Secret`, and delegates
 real Tuya access to the OpenHDO Linker driver. On a Linker host with the
 separate Linker checkout available, install both packages:
 
@@ -123,7 +123,7 @@ linkerct --config data/linker/config.json run
 Without a `tuya` section the process exposes only real LAN discovery and does
 not invent devices. To control an RGB lamp, add its real IP, device ID, local
 key, protocol, and DP mapping under `tuya`. Add the Linker endpoint in the
-server admin panel using the same host, port, and minisecret.
+server admin panel using the same host, port, and secret.
 
 ## Server admin panel
 

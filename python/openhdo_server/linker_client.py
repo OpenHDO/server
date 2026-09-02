@@ -62,14 +62,14 @@ class LinkerConnector:
             await asyncio.gather(*tasks.values(), return_exceptions=True)
 
     async def _run_entry(self, entry: LinkerEntry) -> None:
-        assert entry.host is not None and entry.port is not None and entry.minisecret is not None
+        assert entry.host is not None and entry.port is not None and entry.secret is not None
         host = f"[{entry.host}]" if ":" in entry.host else entry.host
         uri = f"ws://{host}:{entry.port}/api/v1/linker"
         while True:
             try:
                 async with connect(
                     uri,
-                    additional_headers={"X-OpenHDO-Minisecret": entry.minisecret},
+                    additional_headers={"X-OpenHDO-Secret": entry.secret},
                     open_timeout=5,
                 ) as socket:
                     await self._handler(entry, OutboundLinkerSocket(socket))

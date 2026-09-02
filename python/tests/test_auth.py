@@ -198,7 +198,7 @@ class AuthApiTests(unittest.TestCase):
                 csrf = client.cookies.get("openhdo_csrf")
                 added = client.post(
                     "/api/v1/admin/linkers",
-                    json={"host": "127.0.0.1", "port": 8765, "minisecret": "office-secret"},
+                    json={"host": "127.0.0.1", "port": 8765, "secret": "linker1"},
                     headers={"X-OpenHDO-CSRF": csrf},
                 )
                 self.assertEqual(added.status_code, 201)
@@ -206,11 +206,11 @@ class AuthApiTests(unittest.TestCase):
                 added_payload = added.json()
                 self.assertEqual(added_payload["host"], "127.0.0.1")
                 self.assertEqual(added_payload["port"], 8765)
-                self.assertNotIn("minisecret", added_payload)
+                self.assertNotIn("secret", added_payload)
                 self.assertEqual(client.get("/api/v1/linkers").json()["linkers"][0]["host"], "127.0.0.1")
                 duplicate = client.post(
                     "/api/v1/admin/linkers",
-                    json={"host": "127.0.0.1", "port": 8765, "minisecret": "office-secret"},
+                    json={"host": "127.0.0.1", "port": 8765, "secret": "linker1"},
                     headers={"X-OpenHDO-CSRF": csrf},
                 )
                 self.assertEqual(duplicate.status_code, 409)

@@ -361,7 +361,7 @@ class LinkersResponse(StrictModel):
 class LinkerCreateRequest(StrictModel):
     host: str = Field(min_length=1, max_length=45)
     port: StrictInt = Field(ge=1, le=65535)
-    minisecret: str = Field(min_length=1, max_length=256)
+    secret: str = Field(min_length=1, max_length=256)
 
     @field_validator("host")
     @classmethod

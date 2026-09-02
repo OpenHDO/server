@@ -86,7 +86,7 @@ The active runtime exposes these transport adapters over the same v1 model:
 - `WS /api/v1/events` publishes canonical `light.updated` event envelopes.
 
 The admin must add the Linker endpoint before the server connects. The Linker
-must verify the `X-OpenHDO-Minisecret` header and send `link.register` first;
+must verify the `X-OpenHDO-Secret` header and send `link.register` first;
 its `source` and manifest ID must match.
 
 The Linker WS is a message endpoint, not a device protocol adapter. The server

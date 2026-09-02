@@ -29,7 +29,7 @@ class LinkerConfigError(ValueError):
 class LinkerServiceConfig:
     host: str
     port: int
-    minisecret: str
+    secret: str
     linker_id: str
     linker_version: str
     linker_name: str
@@ -55,9 +55,12 @@ def load_config(path: Path) -> LinkerServiceConfig:
     port = _integer(listen, "port", default=8765)
     if not 1 <= port <= 65535:
         raise LinkerConfigError("listen.port must be between 1 and 65535")
-    minisecret = _string(listen, "minisecret")
-    if not minisecret:
-        raise LinkerConfigError("listen.minisecret must not be empty")
+    secret_value = listen.get("secret", listen.get("minisecret"))
+    if not isinstance(secret_value, str):
+        raise LinkerConfigError("listen.secret must be a string")
+    secret = secret_value
+    if not secret:
+        raise LinkerConfigError("listen.secret must not be empty")
 
     linker_id = _string(linker, "id", default="openhdo.linker.rgb-light")
     linker_version = _string(linker, "version", default="0.3.0")
@@ -79,7 +82,7 @@ def load_config(path: Path) -> LinkerServiceConfig:
     return LinkerServiceConfig(
         host=host,
         port=port,
-        minisecret=minisecret,
+        secret=secret,
         linker_id=linker_id,
         linker_version=linker_version,
         linker_name=linker_name,
@@ -225,9 +228,9 @@ def _handle_client_factory(config: LinkerServiceConfig, boundary, driver):
         if request.path != "/api/v1/linker":
             await websocket.close(code=1008, reason="unsupported Linker path")
             return
-        provided = request.headers.get("X-OpenHDO-Minisecret", "")
-        if not hmac.compare_digest(provided, config.minisecret):
-            await websocket.close(code=1008, reason="invalid Linker minisecret")
+        provided = request.headers.get("X-OpenHDO-Secret", request.headers.get("X-OpenHDO-Minisecret", ""))
+        if not hmac.compare_digest(provided, config.secret):
+            await websocket.close(code=1008, reason="invalid Linker secret")
             return
 
         send_lock = asyncio.Lock()

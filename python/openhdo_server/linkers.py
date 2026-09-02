@@ -29,7 +29,7 @@ class LinkerEntry:
     name: str
     host: str | None = None
     port: int | None = None
-    minisecret: str | None = None
+    secret: str | None = None
     manifest: LinkManifest | None = None
     name_override: str | None = None
 
@@ -52,7 +52,7 @@ class LinkerRegistry:
             return [
                 self._copy(entry)
                 for entry in sorted(self._entries.values(), key=lambda item: item.key)
-                if entry.host is not None and entry.port is not None and entry.minisecret is not None
+                if entry.host is not None and entry.port is not None and entry.secret is not None
             ]
 
     def is_registered(self, linker_id: str) -> bool:
@@ -68,7 +68,7 @@ class LinkerRegistry:
             self._save()
             return entry
 
-    def add_connection(self, host: str, port: int, minisecret: str) -> LinkerEntry:
+    def add_connection(self, host: str, port: int, secret: str) -> LinkerEntry:
         with self._lock:
             if any(entry.host == host and entry.port == port for entry in self._entries.values()):
                 raise LinkerRegistryConflict("linker endpoint is already registered")
@@ -79,7 +79,7 @@ class LinkerRegistry:
                 name=f"{host}:{port}",
                 host=host,
                 port=port,
-                minisecret=minisecret,
+                secret=secret,
             )
             self._entries[entry.key] = entry
             self._save()
@@ -102,7 +102,7 @@ class LinkerRegistry:
                 name=current.name_override or manifest.name,
                 host=current.host,
                 port=current.port,
-                minisecret=current.minisecret,
+                secret=current.secret,
                 manifest=manifest,
                 name_override=current.name_override,
             )
@@ -119,7 +119,7 @@ class LinkerRegistry:
                 name=name,
                 host=current.host,
                 port=current.port,
-                minisecret=current.minisecret,
+                secret=current.secret,
                 manifest=current.manifest,
                 name_override=name,
             )
@@ -164,17 +164,17 @@ class LinkerRegistry:
             name_override = raw_entry.get("name_override")
             host = raw_entry.get("host")
             port = raw_entry.get("port")
-            minisecret = raw_entry.get("minisecret")
+            secret = raw_entry.get("secret", raw_entry.get("minisecret"))
             if not isinstance(key, str) or not key:
                 continue
-            if host is not None or port is not None or minisecret is not None:
+            if host is not None or port is not None or secret is not None:
                 if (
                     not isinstance(host, str)
                     or not isinstance(port, int)
                     or isinstance(port, bool)
                     or not 1 <= port <= 65535
-                    or not isinstance(minisecret, str)
-                    or not minisecret
+                    or not isinstance(secret, str)
+                    or not secret
                 ):
                     continue
                 try:
@@ -187,7 +187,7 @@ class LinkerRegistry:
                 name=name,
                 host=host,
                 port=port,
-                minisecret=minisecret,
+                secret=secret,
                 manifest=manifest,
                 name_override=name_override if isinstance(name_override, str) and name_override else None,
             )
@@ -205,7 +205,7 @@ class LinkerRegistry:
                             "name": entry.name,
                             "host": entry.host,
                             "port": entry.port,
-                            "minisecret": entry.minisecret,
+                            "secret": entry.secret,
                             "name_override": entry.name_override,
                             "manifest": entry.manifest.model_dump(mode="json") if entry.manifest else None,
                         }
@@ -227,7 +227,7 @@ class LinkerRegistry:
             name=entry.name,
             host=entry.host,
             port=entry.port,
-            minisecret=entry.minisecret,
+            secret=entry.secret,
             manifest=entry.manifest.model_copy(deep=True) if entry.manifest else None,
             name_override=entry.name_override,
         )

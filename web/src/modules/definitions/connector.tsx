@@ -63,7 +63,7 @@ function ConnectorModule({ context }: PanelModuleProps) {
   const [showAdd, setShowAdd] = useState(false);
   const [linkerHost, setLinkerHost] = useState("");
   const [linkerPort, setLinkerPort] = useState("");
-  const [minisecret, setMinisecret] = useState("");
+  const [secret, setSecret] = useState("");
   const [actionPending, setActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -106,14 +106,14 @@ function ConnectorModule({ context }: PanelModuleProps) {
       const response = await context.api.request("/api/v1/admin/linkers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ host: linkerHost, port: Number(linkerPort), minisecret }),
+        body: JSON.stringify({ host: linkerHost, port: Number(linkerPort), secret }),
       });
       if (!response.ok) throw new Error(await readError(response));
       const added = (await response.json()) as Linker;
       setLinkers((current) => [...current.filter((item) => item.id !== added.id), added].sort((left, right) => left.id.localeCompare(right.id)));
       setLinkerHost("");
       setLinkerPort("");
-      setMinisecret("");
+      setSecret("");
       setShowAdd(false);
       setSuccess("Linker added");
     } catch (error) {
@@ -158,8 +158,8 @@ function ConnectorModule({ context }: PanelModuleProps) {
               <input required type="number" min="1" max="65535" value={linkerPort} onChange={(event) => setLinkerPort(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
             </label>
             <label className="grid gap-2 text-sm text-neutral-300">
-              Minisecret
-              <input required type="password" autoComplete="new-password" value={minisecret} onChange={(event) => setMinisecret(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
+              Secret
+              <input required type="password" autoComplete="new-password" value={secret} onChange={(event) => setSecret(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
             </label>
             {actionError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={actionError} />}
             <div className="flex justify-end gap-2 pt-2">
