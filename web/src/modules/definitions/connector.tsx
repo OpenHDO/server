@@ -340,7 +340,6 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
 
 function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModuleContext["api"]; linkerId: string; available: boolean; onClose: () => void }) {
   const [category, setCategory] = useState<"bulb" | null>(null);
-  const [query, setQuery] = useState("");
   const [searchState, setSearchState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [searchError, setSearchError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<DiscoveryCandidate[]>([]);
@@ -392,9 +391,6 @@ function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModu
     }
   }
 
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const visibleCandidates = candidates.filter((candidate) => [candidate.name, candidate.candidate_id, candidate.transport].some((value) => value.toLocaleLowerCase().includes(normalizedQuery)));
-
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && searchState !== "loading") onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="add-device-title" className="w-full max-w-lg rounded-lg border border-neutral-700 bg-neutral-950 p-5 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
@@ -411,16 +407,14 @@ function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModu
             <span className="font-medium">Bulb</span>
           </button>
         </div> : <div className="mt-5 grid gap-4">
-          <form className="flex gap-2" onSubmit={(event) => void search(event)}>
-            <label className="sr-only" htmlFor="device-search">Search devices</label>
-            <input id="device-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search devices" className="h-10 min-w-0 flex-1 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-sm text-neutral-100 outline-none transition placeholder:text-neutral-600 focus:border-accent" />
+          <form className="flex justify-end" onSubmit={(event) => void search(event)}>
             <button type="submit" disabled={searchState === "loading"} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{searchState === "loading" ? <CircleNotch className="animate-spin" size={17} aria-hidden="true" /> : <MagnifyingGlass size={17} aria-hidden="true" />}Find</button>
           </form>
           {searchError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={searchError} />}
           {searchState === "idle" && <p className="text-sm text-neutral-500">Find a bulb on the Linker network.</p>}
-          {searchState === "ready" && visibleCandidates.length === 0 && <StatusMessage icon={<Lightbulb size={18} />} message="No bulbs found" />}
-          {visibleCandidates.length > 0 && <div className="grid gap-2">
-            {visibleCandidates.map((candidate) => <button key={candidate.candidate_id} type="button" aria-pressed={selectedCandidate === candidate.candidate_id} onClick={() => setSelectedCandidate(candidate.candidate_id)} className={`flex items-center gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${selectedCandidate === candidate.candidate_id ? "border-accent bg-accent/10" : "border-neutral-800 hover:border-accent"}`}>
+          {searchState === "ready" && candidates.length === 0 && <StatusMessage icon={<Lightbulb size={18} />} message="No bulbs found" />}
+          {candidates.length > 0 && <div className="grid gap-2">
+            {candidates.map((candidate) => <button key={candidate.candidate_id} type="button" aria-pressed={selectedCandidate === candidate.candidate_id} onClick={() => setSelectedCandidate(candidate.candidate_id)} className={`flex items-center gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${selectedCandidate === candidate.candidate_id ? "border-accent bg-accent/10" : "border-neutral-800 hover:border-accent"}`}>
               <img src="/admin/devices/bulb.png" alt="" className="h-12 w-12 shrink-0 object-contain" />
               <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-neutral-100">{candidate.name}</span><span className="block text-xs text-neutral-500">{candidate.requires_pairing ? "Pairing required" : candidate.transport}</span></span>
               {selectedCandidate === candidate.candidate_id && <CheckCircle className="shrink-0 text-accent-muted" weight="fill" size={19} aria-hidden="true" />}
