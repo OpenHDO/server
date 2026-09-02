@@ -5,6 +5,7 @@ import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
 import { Lightbulb } from "@phosphor-icons/react/Lightbulb";
 import { PlugsConnected } from "@phosphor-icons/react/PlugsConnected";
 import { WarningCircle } from "@phosphor-icons/react/WarningCircle";
+import { X } from "@phosphor-icons/react/X";
 import { XCircle } from "@phosphor-icons/react/XCircle";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 
@@ -65,6 +66,15 @@ function ConnectorModule({ context }: PanelModuleProps) {
     void loadLinkers();
   }, []);
 
+  useEffect(() => {
+    if (!showAdd) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !actionPending) setShowAdd(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [showAdd, actionPending]);
+
   async function addLinker(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setActionPending(true);
@@ -95,7 +105,7 @@ function ConnectorModule({ context }: PanelModuleProps) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="font-brand text-2xl font-bold tracking-tight">Linkers</h1>
         <div className="flex flex-wrap gap-2">
-          {isAdmin && <button type="button" onClick={() => { setShowAdd((current) => !current); setActionError(null); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"><Plus size={17} aria-hidden="true" />Add linker</button>}
+          {isAdmin && <button type="button" onClick={() => { setShowAdd(true); setActionError(null); }} className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"><Plus size={17} aria-hidden="true" />Add linker</button>}
           <button
             type="button"
             onClick={() => void loadLinkers()}
@@ -108,21 +118,29 @@ function ConnectorModule({ context }: PanelModuleProps) {
         </div>
       </div>
 
-      {showAdd && isAdmin && <form className="grid gap-4 border-y border-neutral-800 py-5 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end" onSubmit={(event) => void addLinker(event)}>
-        <label className="grid gap-2 text-sm text-neutral-300">
-          Linker ID
-          <input required pattern="[a-z][a-z0-9._-]{1,63}" value={linkerId} onChange={(event) => setLinkerId(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-950 px-3 text-neutral-100 outline-none transition focus:border-accent" />
-        </label>
-        <label className="grid gap-2 text-sm text-neutral-300">
-          Name
-          <input required value={linkerName} onChange={(event) => setLinkerName(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-950 px-3 text-neutral-100 outline-none transition focus:border-accent" />
-        </label>
-        <div className="flex gap-2 md:pb-0">
-          <button type="submit" disabled={actionPending} className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{actionPending && <CircleNotch className="animate-spin" size={17} aria-hidden="true" />}Add</button>
-          <button type="button" onClick={() => setShowAdd(false)} className="h-10 rounded-md border border-neutral-700 px-4 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">Cancel</button>
+      {showAdd && isAdmin && <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !actionPending) setShowAdd(false); }}>
+        <div role="dialog" aria-modal="true" aria-labelledby="add-linker-title" className="w-full max-w-lg rounded-lg border border-neutral-700 bg-neutral-950 p-5 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="flex items-center justify-between gap-4">
+            <h2 id="add-linker-title" className="font-brand text-xl font-bold text-neutral-100">Add linker</h2>
+            <button type="button" aria-label="Close dialog" onClick={() => setShowAdd(false)} disabled={actionPending} className="grid h-9 w-9 place-items-center rounded-md text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60"><X size={19} aria-hidden="true" /></button>
+          </div>
+          <form className="mt-5 grid gap-4" onSubmit={(event) => void addLinker(event)}>
+            <label className="grid gap-2 text-sm text-neutral-300">
+              Linker ID
+              <input autoFocus required pattern="[a-z][a-z0-9._-]{1,63}" value={linkerId} onChange={(event) => setLinkerId(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
+            </label>
+            <label className="grid gap-2 text-sm text-neutral-300">
+              Name
+              <input required value={linkerName} onChange={(event) => setLinkerName(event.target.value)} className="h-10 rounded-md border border-neutral-700 bg-neutral-900 px-3 text-neutral-100 outline-none transition focus:border-accent" />
+            </label>
+            {actionError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={actionError} />}
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setShowAdd(false)} disabled={actionPending} className="h-10 rounded-md border border-neutral-700 px-4 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">Cancel</button>
+              <button type="submit" disabled={actionPending} className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{actionPending && <CircleNotch className="animate-spin" size={17} aria-hidden="true" />}Add</button>
+            </div>
+          </form>
         </div>
-      </form>}
-      {actionError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={actionError} />}
+      </div>}
       {success && <StatusMessage tone="success" icon={<CheckCircle size={18} aria-hidden="true" />} message={success} />}
       {loadState === "loading" && <StatusMessage icon={<CircleNotch className="animate-spin" size={18} />} message="Loading linkers" />}
       {loadState === "error" && (
