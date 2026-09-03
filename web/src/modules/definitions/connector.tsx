@@ -307,9 +307,9 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
           <CaretDown size={16} className={`ml-auto shrink-0 text-neutral-300 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
         </button>
         <div className="flex shrink-0 items-center gap-1">
-          <div className="hidden items-center gap-2 px-1 text-neutral-300 min-[390px]:flex">
+          <div className="flex items-center gap-1 px-1 text-neutral-300">
             <span className={`grid h-8 w-8 place-items-center ${linker.available ? "text-accent-muted" : "text-red-400"}`} role="img" aria-label={linker.available ? "Linker available" : "Linker offline"} title={linker.available ? "Available" : "Offline"}><WifiHigh size={18} aria-hidden="true" /></span>
-            {["bluetooth", "zigbee", "matter"].map((transport) => <span key={transport} className="text-red-400" title={transport} aria-label={transport}><TransportIcon transport={transport} /></span>)}
+            {["bluetooth", "zigbee", "matter"].map((transport) => <span key={transport} className="grid h-8 w-8 place-items-center text-red-400" title={transport} aria-label={transport}><TransportIcon transport={transport} /></span>)}
           </div>
           {canManage && <div className="relative" ref={menuRef}>
             <button type="button" onClick={() => setMenuOpen((current) => !current)} aria-label={`Actions for ${linker.name}`} aria-expanded={menuOpen} aria-haspopup="menu" className="grid h-8 w-8 place-items-center rounded-md text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"><DotsThreeVertical size={18} aria-hidden="true" /></button>
