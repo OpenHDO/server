@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from pydantic import TypeAdapter, ValidationError
 
-from .models import Identifier, LinkManifest
+from .models import DeviceManifest, Identifier, LinkManifest
 
 
 class LinkerRegistryConflict(Exception):
@@ -96,6 +96,8 @@ class LinkerRegistry:
                 return
             if any(entry.key != current.key and entry.id == manifest.id for entry in self._entries.values()):
                 raise LinkerRegistryConflict("linker identity is already registered")
+            if manifest.devices is None and current.manifest is not None:
+                manifest = manifest.model_copy(update={"devices": current.manifest.devices})
             self._entries[current.key] = LinkerEntry(
                 key=current.key,
                 id=manifest.id,
@@ -107,6 +109,18 @@ class LinkerRegistry:
                 name_override=current.name_override,
             )
             self._save()
+
+    def add_manifest_device(self, linker_id: str, device: DeviceManifest) -> None:
+        with self._lock:
+            current = next((entry for entry in self._entries.values() if entry.id == linker_id), None)
+            if current is None or current.manifest is None or any(
+                item.id == device.id for item in (current.manifest.devices or [])
+            ):
+                return
+            self.update_manifest(
+                current.manifest.model_copy(update={"devices": [*(current.manifest.devices or []), device]}),
+                key=current.key,
+            )
 
     def rename(self, linker_id: str, name: str) -> LinkerEntry:
         with self._lock:

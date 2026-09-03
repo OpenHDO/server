@@ -76,8 +76,11 @@ class InMemoryLightRepository:
     def register_linker(self, linker_id: str, manifest: LinkManifest) -> list[LightRecord]:
         if manifest.id != linker_id:
             raise LinkerConflict("linker path id does not match manifest id")
-        devices = manifest.devices or []
         with self._lock:
+            current = self._linkers.get(linker_id)
+            if manifest.devices is None and current is not None:
+                manifest = manifest.model_copy(update={"devices": current.devices})
+            devices = manifest.devices or []
             self._validate_registration(linker_id, devices)
             self._linkers[linker_id] = manifest
             device_ids = {device.id for device in devices}

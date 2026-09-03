@@ -217,7 +217,7 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(linker_view["devices"][0]["light_id"], "light.living")
             self.assertFalse(client.get("/api/v1/linkers").json()["linkers"][0]["available"])
 
-    def test_linker_registration_reconciles_removed_devices(self) -> None:
+    def test_linker_registration_with_explicit_empty_devices_reconciles_removed_devices(self) -> None:
         with TestClient(create_linker_app()) as client:
             with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
                 linker.send_json(register_message())
@@ -231,10 +231,32 @@ class ServerApiTests(unittest.TestCase):
                             "version": "1.0.0",
                             "name": "Test Linker",
                             "transports": ["local"],
+                            "devices": [],
                         },
                     )
                 )
                 self.assertEqual(client.get("/api/v1/lights").json()["lights"], [])
+
+    def test_linker_registration_without_devices_preserves_known_devices(self) -> None:
+        with TestClient(create_linker_app()) as client:
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                linker.send_json(
+                    envelope(
+                        "link.register",
+                        "linker.test",
+                        {
+                            "id": "linker.test",
+                            "version": "1.0.0",
+                            "name": "Test Linker",
+                            "transports": ["local"],
+                        },
+                    )
+                )
+                self.assertEqual(
+                    {light["light_id"] for light in client.get("/api/v1/lights").json()["lights"]},
+                    {"light.living"},
+                )
 
     def test_unregistered_linker_is_rejected_before_registration(self) -> None:
         with TestClient(create_linker_app(register=False)) as client:
@@ -394,7 +416,8 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(timed_out["error"], "discovery timed out")
 
     def test_pairing_registers_only_linker_confirmed_abstract_device(self) -> None:
-        with TestClient(create_linker_app()) as client:
+        application = create_linker_app()
+        with TestClient(application) as client:
             with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
                 linker.send_json(register_message())
                 discovery = client.post(
@@ -435,6 +458,17 @@ class ServerApiTests(unittest.TestCase):
                     {light["light_id"] for light in client.get("/api/v1/lights").json()["lights"]},
                     {"light.living", "light.discovered"},
                 )
+                manifest = application.state.linker_registry.list()[0].manifest
+                self.assertIsNotNone(manifest)
+                self.assertEqual(
+                    {device.id for device in manifest.devices},
+                    {"light.living", "light.discovered"},
+                )
+        with TestClient(create_app(application.state.settings)) as restarted:
+            self.assertEqual(
+                {light["light_id"] for light in restarted.get("/api/v1/lights").json()["lights"]},
+                {"light.living", "light.discovered"},
+            )
 
     def test_failed_pairing_does_not_create_a_phantom_light(self) -> None:
         with TestClient(create_linker_app()) as client:

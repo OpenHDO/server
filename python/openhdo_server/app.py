@@ -320,6 +320,8 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                         await discovery_service.ingest_completed(linker_id, message)
                     elif isinstance(message, PairingCompletedEnvelope):
                         await pairing_service.ingest_completed(linker_id, message)
+                        if message.payload.status == "completed" and message.payload.device is not None:
+                            linker_registry.add_manifest_device(linker_id, message.payload.device)
                     else:
                         await service.ingest_result(linker_id, message)
                 except LinkerRegistryConflict as error:
