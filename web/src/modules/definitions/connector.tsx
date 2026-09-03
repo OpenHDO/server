@@ -459,9 +459,6 @@ function AddDeviceDialog({ api, linkerId, available, onClose, onPaired }: { api:
             <span className="font-medium">Bulb</span>
           </button>
         </div> : <div className="mt-5 grid gap-4">
-          <form className="flex justify-end" onSubmit={(event) => void search(event)}>
-            <button type="submit" disabled={busy} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{searchState === "loading" ? <CircleNotch className="animate-spin" size={17} aria-hidden="true" /> : <MagnifyingGlass size={17} aria-hidden="true" />}Find</button>
-          </form>
           {searchError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={searchError} />}
           {searchState === "idle" && <p className="text-sm text-neutral-500">Find a bulb on the Linker network.</p>}
           {searchState === "ready" && candidates.length === 0 && <StatusMessage icon={<Lightbulb size={18} />} message="No bulbs found" />}
@@ -473,7 +470,12 @@ function AddDeviceDialog({ api, linkerId, available, onClose, onPaired }: { api:
             </button>)}
           </div>}
           {pairingError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={pairingError} />}
-          {candidates.length > 0 && <div className="flex justify-end border-t border-neutral-800 pt-4"><button type="button" onClick={() => void pair()} disabled={!selectedCandidate || !discoverySessionId || busy} className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{pairingState === "loading" && <CircleNotch className="animate-spin" size={17} aria-hidden="true" />}{pairingState === "error" ? "Try again" : "Continue"}</button></div>}
+          <div className="flex items-center justify-between gap-3 border-t border-neutral-800 pt-4">
+            <form onSubmit={(event) => void search(event)}>
+              <button type="submit" disabled={busy} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{searchState === "loading" ? <CircleNotch className="animate-spin" size={17} aria-hidden="true" /> : <MagnifyingGlass size={17} aria-hidden="true" />}Find</button>
+            </form>
+            {candidates.length > 0 && <button type="button" onClick={() => void pair()} disabled={!selectedCandidate || !discoverySessionId || busy} className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{pairingState === "loading" && <CircleNotch className="animate-spin" size={17} aria-hidden="true" />}{pairingState === "error" ? "Try again" : "Continue"}</button>}
+          </div>
         </div>}
       </div>
     </div>
