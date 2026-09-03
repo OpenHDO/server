@@ -20,6 +20,8 @@ DiscoveryTimeout = Annotated[StrictInt, Field(ge=1, le=60)]
 ColorMode = Literal["RGB", "RGBW", "CCT"]
 DiscoverySessionStatus = Literal["running", "completed", "failed"]
 DiscoveryCompletionStatus = Literal["completed", "failed"]
+PairingSessionStatus = Literal["running", "completed", "failed"]
+PairingCompletionStatus = Literal["completed", "failed"]
 UserRole = Literal["admin", "user"]
 
 
@@ -273,6 +275,59 @@ class DiscoveryCompletedEnvelope(EnvelopeBase):
     payload: DiscoveryCompletedPayload
 
 
+class PairingStartRequest(StrictModel):
+    linker_id: Identifier
+    discovery_session_id: UUID
+    candidate_id: Identifier
+    timeout_s: DiscoveryTimeout
+
+
+class PairingStartPayload(StrictModel):
+    session_id: UUID
+    discovery_session_id: UUID
+    candidate_id: Identifier
+    timeout_s: DiscoveryTimeout
+
+
+class PairingCompletedPayload(StrictModel):
+    session_id: UUID
+    candidate_id: Identifier
+    status: PairingCompletionStatus
+    error: str | None = Field(max_length=512)
+    device: DeviceManifest | None = None
+
+    @model_validator(mode="after")
+    def validate_result(self) -> "PairingCompletedPayload":
+        if self.status == "completed":
+            if self.device is None:
+                raise ValueError("a completed pairing requires a device")
+            if self.device.id != self.candidate_id:
+                raise ValueError("paired device id must match candidate_id")
+            if self.error is not None:
+                raise ValueError("a completed pairing cannot contain an error")
+        elif self.device is not None:
+            raise ValueError("a failed pairing cannot contain a device")
+        return self
+
+
+class PairingStartEnvelope(EnvelopeBase):
+    type: Literal["pairing.start"]
+    correlation_id: UUID
+    payload: PairingStartPayload
+
+    @model_validator(mode="after")
+    def correlation_targets_request(self) -> "PairingStartEnvelope":
+        if self.correlation_id != self.id:
+            raise ValueError("pairing.start correlation_id must equal envelope id")
+        return self
+
+
+class PairingCompletedEnvelope(EnvelopeBase):
+    type: Literal["pairing.completed"]
+    correlation_id: UUID
+    payload: PairingCompletedPayload
+
+
 DiscoveryEnvelope = Annotated[
     DiscoveryStartEnvelope | DiscoveryCandidateEnvelope | DiscoveryCompletedEnvelope,
     Field(discriminator="type"),
@@ -290,7 +345,8 @@ LinkerEnvelope = Annotated[
     | LightStateReportedEnvelope
     | CommandResultEnvelope
     | DiscoveryCandidateEnvelope
-    | DiscoveryCompletedEnvelope,
+    | DiscoveryCompletedEnvelope
+    | PairingCompletedEnvelope,
     Field(discriminator="type"),
 ]
 
@@ -381,6 +437,16 @@ class DiscoverySessionResponse(StrictModel):
     linker_id: Identifier
     status: DiscoverySessionStatus
     candidates: list[DiscoveryCandidatePayload]
+    error: str | None = None
+
+
+class PairingSessionResponse(StrictModel):
+    session_id: UUID
+    linker_id: Identifier
+    discovery_session_id: UUID
+    candidate_id: Identifier
+    status: PairingSessionStatus
+    device: DeviceManifest | None = None
     error: str | None = None
 
 

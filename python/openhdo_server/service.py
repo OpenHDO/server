@@ -19,6 +19,7 @@ from .models import (
     DiscoverySessionResponse,
     DiscoveryStartEnvelope,
     DiscoveryStartRequest,
+    DeviceManifest,
     LightCommandEnvelope,
     LightRecord,
     LightStateReportedEnvelope,
@@ -26,15 +27,21 @@ from .models import (
     LinkManifest,
     LinkRegisterEnvelope,
     LinkerEnvelope,
+    PairingCompletedEnvelope,
+    PairingSessionResponse,
+    PairingStartEnvelope,
+    PairingStartRequest,
     utc_now,
 )
 from .repository import (
     InMemoryDiscoverySessionRepository,
     InMemoryLightRepository,
+    InMemoryPairingSessionRepository,
     DiscoverySessionConflict,
     DiscoverySessionNotFound,
     LightNotFound,
     LinkerConflict,
+    PairingSessionNotFound,
     RepositoryError,
     StaleState,
 )
@@ -81,6 +88,10 @@ class LightService:
         # ponytail: one process-local lock; use keyed locks only if command throughput requires it.
         self._command_lock = asyncio.Lock()
 
+    @property
+    def instance_name(self) -> str:
+        return self._instance_name
+
     def list_lights(self) -> list[LightRecord]:
         return self.repository.list_lights()
 
@@ -89,6 +100,26 @@ class LightService:
 
     def remove_linker(self, linker_id: str) -> None:
         self.repository.remove_linker(linker_id)
+
+    def light_registered(self, light_id: str) -> bool:
+        try:
+            self.repository.get_light(light_id)
+        except LightNotFound:
+            return False
+        return True
+
+    async def register_paired_device(self, linker_id: str, device: DeviceManifest) -> None:
+        try:
+            record = self.repository.add_device(linker_id, device)
+        except RepositoryError as error:
+            raise ServiceError(409, error.code, str(error)) from error
+        await self._publish_update(record)
+        log_event(
+            self._logger,
+            logging.INFO,
+            "linker.device_paired",
+            {"linker_id": linker_id, "light_id": device.id},
+        )
 
     def get_light(self, light_id: str) -> LightRecord:
         try:
@@ -411,6 +442,192 @@ class DiscoveryService:
 
     @staticmethod
     def _require_linker_source(linker_id: str, message: DiscoveryCandidateEnvelope | DiscoveryCompletedEnvelope) -> None:
+        if message.source != linker_id:
+            raise ServiceError(403, "source_mismatch", "message source does not match the linker connection")
+
+    def _cancel_timeout(self, session_id: UUID) -> None:
+        task = self._timeouts.pop(session_id, None)
+        if task is not None and task is not asyncio.current_task():
+            task.cancel()
+
+
+class PairingService:
+    """Coordinate pairing and publish a device only after Linker confirmation."""
+
+    def __init__(
+        self,
+        discovery_repository: InMemoryDiscoverySessionRepository,
+        repository: InMemoryPairingSessionRepository,
+        transport: DiscoveryTransport,
+        lights: LightService,
+        logger: logging.Logger,
+        clock: Callable = utc_now,
+    ) -> None:
+        self._discovery_repository = discovery_repository
+        self.repository = repository
+        self._transport = transport
+        self._lights = lights
+        self._logger = logger
+        self._clock = clock
+        self._timeouts: dict[UUID, asyncio.Task[None]] = {}
+
+    async def start(self, request: PairingStartRequest) -> PairingSessionResponse:
+        try:
+            _, discovery = self._discovery_repository.get(request.discovery_session_id)
+        except DiscoverySessionNotFound as error:
+            raise ServiceError(404, "discovery_session_not_found", str(error)) from error
+        if discovery.linker_id != request.linker_id:
+            raise ServiceError(403, "linker_mismatch", "discovery session belongs to another linker")
+        if discovery.status != "completed":
+            raise ServiceError(409, "discovery_session_not_completed", "discovery must complete before pairing")
+        candidate = next(
+            (item for item in discovery.candidates if item.candidate_id == request.candidate_id),
+            None,
+        )
+        if candidate is None:
+            raise ServiceError(404, "discovery_candidate_not_found", "discovery candidate does not exist")
+        if self._lights.light_registered(candidate.candidate_id):
+            raise ServiceError(409, "device_already_paired", "device is already paired")
+        if self.repository.has_running(request.linker_id, candidate.candidate_id):
+            raise ServiceError(409, "pairing_in_progress", "device pairing is already in progress")
+
+        session_id = uuid4()
+        start_id = uuid4()
+        start = PairingStartEnvelope(
+            v=1,
+            id=start_id,
+            type="pairing.start",
+            ts=self._clock(),
+            source=self._lights.instance_name,
+            correlation_id=start_id,
+            payload={
+                "session_id": session_id,
+                "discovery_session_id": request.discovery_session_id,
+                "candidate_id": candidate.candidate_id,
+                "timeout_s": request.timeout_s,
+            },
+        )
+        self.repository.create(
+            session_id,
+            request.linker_id,
+            request.discovery_session_id,
+            candidate.candidate_id,
+            start_id,
+        )
+        try:
+            sent = await self._transport.send(request.linker_id, start)
+        except Exception:
+            sent = False
+        if not sent:
+            self.repository.finish(session_id, "failed", "the linker is not connected")
+        else:
+            self._timeouts[session_id] = asyncio.create_task(
+                self._expire(session_id, request.timeout_s),
+                name=f"pairing-timeout-{session_id}",
+            )
+        return self.get(session_id)
+
+    def get(self, session_id: UUID) -> PairingSessionResponse:
+        try:
+            return self.repository.get(session_id)[1]
+        except PairingSessionNotFound as error:
+            raise ServiceError(404, error.code, str(error)) from error
+
+    async def ingest_completed(self, linker_id: str, message: PairingCompletedEnvelope) -> None:
+        self._require_linker_source(linker_id, message)
+        _, session = self._matching_session(linker_id, message.correlation_id, message.payload.session_id)
+        if session.status != "running":
+            raise ServiceError(409, "pairing_session_closed", "pairing session is no longer running")
+        if message.payload.candidate_id != session.candidate_id:
+            raise ServiceError(409, "candidate_mismatch", "pairing result does not match the candidate")
+
+        error = message.payload.error
+        if message.payload.status == "failed":
+            error = error or "linker reported pairing failure"
+            finished = self.repository.finish(session.session_id, "failed", error)
+        else:
+            device = message.payload.device
+            if device is None:
+                self.repository.finish(
+                    session.session_id,
+                    "failed",
+                    "completed pairing did not include a device",
+                )
+                self._cancel_timeout(session.session_id)
+                raise ServiceError(409, "device_missing", "completed pairing did not include a device")
+            try:
+                await self._lights.register_paired_device(linker_id, device)
+            except ServiceError as registration_error:
+                self.repository.finish(session.session_id, "failed", registration_error.detail)
+                self._cancel_timeout(session.session_id)
+                raise
+            finished = self.repository.finish(session.session_id, "completed", None, device)
+        self._cancel_timeout(session.session_id)
+        if finished:
+            log_event(
+                self._logger,
+                logging.INFO if message.payload.status == "completed" else logging.WARNING,
+                "pairing.completed",
+                {
+                    "session_id": str(session.session_id),
+                    "linker_id": linker_id,
+                    "candidate_id": session.candidate_id,
+                    "status": message.payload.status,
+                },
+            )
+
+    async def close(self) -> None:
+        tasks = tuple(self._timeouts.values())
+        self._timeouts.clear()
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def linker_disconnected(self, linker_id: str) -> None:
+        session_ids = self.repository.fail_running_for_linker(linker_id, "linker disconnected")
+        for session_id in session_ids:
+            self._cancel_timeout(session_id)
+
+    async def _expire(self, session_id: UUID, timeout_s: int) -> None:
+        try:
+            await asyncio.sleep(timeout_s)
+            try:
+                _, session = self.repository.get(session_id)
+            except PairingSessionNotFound:
+                return
+            if self.repository.finish(session_id, "failed", "pairing timed out"):
+                log_event(
+                    self._logger,
+                    logging.WARNING,
+                    "pairing.timeout",
+                    {"session_id": str(session.session_id), "linker_id": session.linker_id},
+                )
+        except asyncio.CancelledError:
+            raise
+        finally:
+            if self._timeouts.get(session_id) is asyncio.current_task():
+                self._timeouts.pop(session_id, None)
+
+    def _matching_session(
+        self, linker_id: str, correlation_id: UUID, session_id: UUID
+    ) -> tuple[UUID, PairingSessionResponse]:
+        try:
+            expected_correlation, session = self.repository.get(session_id)
+        except PairingSessionNotFound as error:
+            raise ServiceError(409, "unknown_pairing_session", str(error)) from error
+        if session.linker_id != linker_id:
+            raise ServiceError(403, "linker_mismatch", "pairing session belongs to another linker")
+        if correlation_id != expected_correlation:
+            raise ServiceError(
+                409,
+                "correlation_mismatch",
+                "pairing message correlation does not match pairing.start",
+            )
+        return expected_correlation, session
+
+    @staticmethod
+    def _require_linker_source(linker_id: str, message: PairingCompletedEnvelope) -> None:
         if message.source != linker_id:
             raise ServiceError(403, "source_mismatch", "message source does not match the linker connection")
 

@@ -35,6 +35,9 @@ from .models import (
     DiscoveryCompletedEnvelope,
     DiscoverySessionResponse,
     DiscoveryStartRequest,
+    PairingCompletedEnvelope,
+    PairingSessionResponse,
+    PairingStartRequest,
     HealthResponse,
     LightCommandEnvelope,
     LightPatchRequest,
@@ -59,8 +62,8 @@ from .models import (
     UsersResponse,
     utc_now,
 )
-from .repository import InMemoryDiscoverySessionRepository, InMemoryLightRepository
-from .service import DiscoveryService, LightService, ServiceError
+from .repository import InMemoryDiscoverySessionRepository, InMemoryLightRepository, InMemoryPairingSessionRepository
+from .service import DiscoveryService, LightService, PairingService, ServiceError
 
 
 _SOURCE_ADAPTER = TypeAdapter(Source)
@@ -146,6 +149,13 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         instance_name=settings.instance_name,
         logger=logger,
     )
+    pairing_service = PairingService(
+        discovery_repository=discovery_repository,
+        repository=InMemoryPairingSessionRepository(),
+        transport=connections,
+        lights=service,
+        logger=logger,
+    )
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
@@ -162,6 +172,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             connector_task.cancel()
             await asyncio.gather(connector_task, return_exceptions=True)
             await discovery_service.close()
+            await pairing_service.close()
             auth_store.close()
             log_event(logger, logging.INFO, "server.shutdown", {"instance_name": settings.instance_name})
 
@@ -177,6 +188,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     application.state.settings = settings
     application.state.service = service
     application.state.discovery_service = discovery_service
+    application.state.pairing_service = pairing_service
     application.state.connections = connections
     application.state.auth_store = auth_store
     application.state.linker_registry = linker_registry
@@ -306,6 +318,8 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                         await discovery_service.ingest_candidate(linker_id, message)
                     elif isinstance(message, DiscoveryCompletedEnvelope):
                         await discovery_service.ingest_completed(linker_id, message)
+                    elif isinstance(message, PairingCompletedEnvelope):
+                        await pairing_service.ingest_completed(linker_id, message)
                     else:
                         await service.ingest_result(linker_id, message)
                 except LinkerRegistryConflict as error:
@@ -327,6 +341,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
                 was_current = await connections.detach(linker_id, socket)
                 if was_current:
                     await discovery_service.linker_disconnected(linker_id)
+                    await pairing_service.linker_disconnected(linker_id)
 
     @application.post("/api/v1/auth/login", response_model=AuthResponse)
     async def login(request: Request, credentials: LoginRequest, response: Response) -> AuthResponse:
@@ -573,6 +588,23 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
     )
     async def get_discovery_session(session_id: UUID) -> DiscoverySessionResponse:
         return discovery_service.get(session_id)
+
+    @application.post(
+        "/api/v1/pairing/sessions",
+        response_model=PairingSessionResponse,
+        status_code=202,
+        dependencies=[Depends(require_user), Depends(require_csrf)],
+    )
+    async def start_pairing(request: PairingStartRequest) -> PairingSessionResponse:
+        return await pairing_service.start(request)
+
+    @application.get(
+        "/api/v1/pairing/sessions/{session_id}",
+        response_model=PairingSessionResponse,
+        dependencies=[Depends(require_authorization)],
+    )
+    async def get_pairing_session(session_id: UUID) -> PairingSessionResponse:
+        return pairing_service.get(session_id)
 
     @application.websocket("/api/v1/events")
     async def events_socket(websocket: WebSocket) -> None:

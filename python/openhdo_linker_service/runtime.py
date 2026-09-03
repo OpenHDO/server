@@ -62,7 +62,7 @@ def load_config(path: Path) -> LinkerServiceConfig:
     if not secret:
         raise LinkerConfigError("listen.secret must not be empty")
 
-    linker_id = _string(linker, "id", default="openhdo.linker.rgb-light")
+    linker_id = _string(linker, "id", default="openhdo.linker.rgb-bulb")
     linker_version = _string(linker, "version", default="0.3.0")
     linker_name = _string(linker, "name", default="linker-1")
     if not _IDENTIFIER.fullmatch(linker_id):
@@ -249,13 +249,13 @@ def _handle_client_factory(config: LinkerServiceConfig, boundary, driver):
                 except (ProtocolError, ValueError, TypeError) as error:
                     await websocket.close(code=1003, reason=f"invalid v1 envelope: {type(error).__name__}")
                     return
-                if message.type not in {"discovery.start", "light.command.power", "light.command.brightness", "light.command.rgb_color"}:
+                if message.type not in {"discovery.start", "pairing.start", "light.command.power", "light.command.brightness", "light.command.rgb_color"}:
                     continue
                 try:
                     async with driver_lock:
                         if message.type.startswith("light.command.") and boundary.control_enabled:
                             await driver.connect()
-                        result = await boundary.handle(message)
+                        result = await _handle_linker_message(boundary, message)
                     messages = result if isinstance(result, tuple) else (result,)
                     for response in messages:
                         await _send(websocket, send_lock, response)
@@ -279,6 +279,28 @@ def _handle_client_factory(config: LinkerServiceConfig, boundary, driver):
                 await driver.disconnect()
 
     return handle_client
+
+
+async def _handle_linker_message(boundary, message):
+    if message.type != "pairing.start":
+        return await boundary.handle(message)
+    handler = getattr(boundary, "handle_pairing", None)
+    if handler is not None:
+        return await handler(message)
+    from openhdo_linker import Envelope
+
+    return Envelope(
+        type="pairing.completed",
+        source=boundary.config.id,
+        correlation_id=message.id,
+        payload={
+            "session_id": message.payload["session_id"],
+            "candidate_id": message.payload["candidate_id"],
+            "status": "failed",
+            "error": "pairing is not supported by this Linker",
+            "device": None,
+        },
+    )
 
 
 async def _publish_states(websocket, send_lock, driver_lock, boundary, driver, stop: asyncio.Event) -> None:

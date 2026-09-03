@@ -22,7 +22,7 @@ class LinkerServiceConfigTests(unittest.TestCase):
 
             config = load_config(path)
 
-        self.assertEqual(config.linker_id, "openhdo.linker.rgb-light")
+        self.assertEqual(config.linker_id, "openhdo.linker.rgb-bulb")
         self.assertTrue(config.discovery_enabled)
         self.assertIsNone(config.tuya)
 

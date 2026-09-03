@@ -96,6 +96,31 @@ def discovery_candidate(session_id: str, correlation_id: str, **extra: object) -
     )
 
 
+def pairing_completed(
+    session_id: str,
+    correlation_id: str,
+    *,
+    status: str = "completed",
+    candidate_id: str = "light.discovered",
+) -> dict:
+    return envelope(
+        "pairing.completed",
+        "linker.test",
+        {
+            "session_id": session_id,
+            "candidate_id": candidate_id,
+            "status": status,
+            "error": None if status == "completed" else "pairing failed",
+            "device": {
+                "id": candidate_id,
+                "name": "Paired light",
+                "capabilities": [light_capability()],
+            } if status == "completed" else None,
+        },
+        correlation_id=correlation_id,
+    )
+
+
 class ConfigurationTests(unittest.TestCase):
     def test_defaults_are_local_and_non_local_bind_requires_token(self) -> None:
         settings = load_settings({})
@@ -191,6 +216,25 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(linker_view["transports"], ["local"])
                 self.assertEqual(linker_view["devices"][0]["light_id"], "light.living")
             self.assertFalse(client.get("/api/v1/linkers").json()["linkers"][0]["available"])
+
+    def test_linker_registration_reconciles_removed_devices(self) -> None:
+        with TestClient(create_linker_app()) as client:
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                self.assertEqual(len(client.get("/api/v1/lights").json()["lights"]), 1)
+                linker.send_json(
+                    envelope(
+                        "link.register",
+                        "linker.test",
+                        {
+                            "id": "linker.test",
+                            "version": "1.0.0",
+                            "name": "Test Linker",
+                            "transports": ["local"],
+                        },
+                    )
+                )
+                self.assertEqual(client.get("/api/v1/lights").json()["lights"], [])
 
     def test_unregistered_linker_is_rejected_before_registration(self) -> None:
         with TestClient(create_linker_app(register=False)) as client:
@@ -348,6 +392,115 @@ class ServerApiTests(unittest.TestCase):
                 timed_out = client.get(f"/api/v1/discovery/sessions/{session_id}").json()
                 self.assertEqual(timed_out["status"], "failed")
                 self.assertEqual(timed_out["error"], "discovery timed out")
+
+    def test_pairing_registers_only_linker_confirmed_abstract_device(self) -> None:
+        with TestClient(create_linker_app()) as client:
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                discovery = client.post(
+                    "/api/v1/discovery/sessions",
+                    json={"linker_id": "linker.test", "timeout_s": 3},
+                ).json()
+                discovery_start = linker.receive_json()
+                linker.send_json(discovery_candidate(discovery["session_id"], discovery_start["id"]))
+                linker.send_json(
+                    envelope(
+                        "discovery.completed",
+                        "linker.test",
+                        {"session_id": discovery["session_id"], "status": "completed", "error": None},
+                        correlation_id=discovery_start["id"],
+                    )
+                )
+                pairing = client.post(
+                    "/api/v1/pairing/sessions",
+                    json={
+                        "linker_id": "linker.test",
+                        "discovery_session_id": discovery["session_id"],
+                        "candidate_id": "light.discovered",
+                        "timeout_s": 3,
+                    },
+                )
+                self.assertEqual(pairing.status_code, 202)
+                pairing_start = linker.receive_json()
+                self.assertEqual(pairing_start["type"], "pairing.start")
+                self.assertEqual(pairing_start["payload"]["candidate_id"], "light.discovered")
+                self.assertNotIn("device_id", pairing_start["payload"])
+                self.assertEqual(len(client.get("/api/v1/lights").json()["lights"]), 1)
+
+                linker.send_json(pairing_completed(pairing.json()["session_id"], pairing_start["id"]))
+                completed = client.get(f"/api/v1/pairing/sessions/{pairing.json()['session_id']}")
+                self.assertEqual(completed.status_code, 200)
+                self.assertEqual(completed.json()["status"], "completed")
+                self.assertEqual(
+                    {light["light_id"] for light in client.get("/api/v1/lights").json()["lights"]},
+                    {"light.living", "light.discovered"},
+                )
+
+    def test_failed_pairing_does_not_create_a_phantom_light(self) -> None:
+        with TestClient(create_linker_app()) as client:
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                discovery = client.post(
+                    "/api/v1/discovery/sessions",
+                    json={"linker_id": "linker.test", "timeout_s": 3},
+                ).json()
+                discovery_start = linker.receive_json()
+                linker.send_json(discovery_candidate(discovery["session_id"], discovery_start["id"]))
+                linker.send_json(
+                    envelope(
+                        "discovery.completed",
+                        "linker.test",
+                        {"session_id": discovery["session_id"], "status": "completed", "error": None},
+                        correlation_id=discovery_start["id"],
+                    )
+                )
+                pairing = client.post(
+                    "/api/v1/pairing/sessions",
+                    json={
+                        "linker_id": "linker.test",
+                        "discovery_session_id": discovery["session_id"],
+                        "candidate_id": "light.discovered",
+                        "timeout_s": 3,
+                    }
+                ).json()
+                pairing_start = linker.receive_json()
+                linker.send_json(pairing_completed(pairing["session_id"], pairing_start["id"], status="failed"))
+                self.assertEqual(client.get(f"/api/v1/pairing/sessions/{pairing['session_id']}").json()["status"], "failed")
+                self.assertEqual(len(client.get("/api/v1/lights").json()["lights"]), 1)
+
+    def test_late_pairing_result_after_timeout_does_not_create_a_phantom_light(self) -> None:
+        with TestClient(create_linker_app()) as client:
+            with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
+                linker.send_json(register_message())
+                discovery = client.post(
+                    "/api/v1/discovery/sessions",
+                    json={"linker_id": "linker.test", "timeout_s": 3},
+                ).json()
+                discovery_start = linker.receive_json()
+                linker.send_json(discovery_candidate(discovery["session_id"], discovery_start["id"]))
+                linker.send_json(
+                    envelope(
+                        "discovery.completed",
+                        "linker.test",
+                        {"session_id": discovery["session_id"], "status": "completed", "error": None},
+                        correlation_id=discovery_start["id"],
+                    )
+                )
+                pairing = client.post(
+                    "/api/v1/pairing/sessions",
+                    json={
+                        "linker_id": "linker.test",
+                        "discovery_session_id": discovery["session_id"],
+                        "candidate_id": "light.discovered",
+                        "timeout_s": 1,
+                    }
+                ).json()
+                pairing_start = linker.receive_json()
+                time.sleep(1.2)
+                self.assertEqual(client.get(f"/api/v1/pairing/sessions/{pairing['session_id']}").json()["status"], "failed")
+                linker.send_json(pairing_completed(pairing["session_id"], pairing_start["id"]))
+                time.sleep(0.1)
+                self.assertEqual(len(client.get("/api/v1/lights").json()["lights"]), 1)
 
     def test_linker_disconnect_terminally_fails_running_discovery(self) -> None:
         with TestClient(create_linker_app()) as client:

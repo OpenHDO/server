@@ -14,6 +14,8 @@ from .models import (
     LightRecord,
     LightState,
     LinkManifest,
+    PairingCompletionStatus,
+    PairingSessionResponse,
 )
 
 
@@ -41,6 +43,10 @@ class DiscoverySessionNotFound(RepositoryError):
 
 class DiscoverySessionConflict(RepositoryError):
     code = "discovery_session_conflict"
+
+
+class PairingSessionNotFound(RepositoryError):
+    code = "pairing_session_not_found"
 
 
 class InMemoryLightRepository:
@@ -74,6 +80,12 @@ class InMemoryLightRepository:
         with self._lock:
             self._validate_registration(linker_id, devices)
             self._linkers[linker_id] = manifest
+            device_ids = {device.id for device in devices}
+            self._lights = {
+                light_id: record
+                for light_id, record in self._lights.items()
+                if record.linker_id != linker_id or light_id in device_ids
+            }
             registered: list[LightRecord] = []
             for device in devices:
                 capability = device.capabilities[0]
@@ -89,6 +101,27 @@ class InMemoryLightRepository:
                 self._lights[device.id] = record
                 registered.append(self._copy(record))
             return registered
+
+    def add_device(self, linker_id: str, device: DeviceManifest) -> LightRecord:
+        with self._lock:
+            manifest = self._linkers.get(linker_id)
+            if manifest is None:
+                raise LinkerConflict("linker is not registered")
+            if device.id in self._lights:
+                raise LinkerConflict("device is already paired")
+            devices = [*(manifest.devices or []), device]
+            self._validate_registration(linker_id, devices)
+            self._linkers[linker_id] = manifest.model_copy(update={"devices": devices})
+            record = LightRecord(
+                light_id=device.id,
+                name=device.name,
+                linker_id=linker_id,
+                capability=device.capabilities[0],
+                state=None,
+                updated_at=None,
+            )
+            self._lights[device.id] = record
+            return self._copy(record)
 
     def apply_state(self, linker_id: str, state: LightState) -> tuple[LightRecord, bool]:
         with self._lock:
@@ -200,4 +233,88 @@ class InMemoryDiscoverySessionRepository:
 
     @staticmethod
     def _copy(session: DiscoverySessionResponse) -> DiscoverySessionResponse:
+        return session.model_copy(deep=True)
+
+
+class InMemoryPairingSessionRepository:
+    """Store transient pairing sessions for one server process."""
+
+    def __init__(self) -> None:
+        self._sessions: dict[UUID, tuple[UUID, PairingSessionResponse]] = {}
+        self._lock = RLock()
+
+    def create(
+        self,
+        session_id: UUID,
+        linker_id: str,
+        discovery_session_id: UUID,
+        candidate_id: str,
+        correlation_id: UUID,
+    ) -> PairingSessionResponse:
+        with self._lock:
+            session = PairingSessionResponse(
+                session_id=session_id,
+                linker_id=linker_id,
+                discovery_session_id=discovery_session_id,
+                candidate_id=candidate_id,
+                status="running",
+                device=None,
+                error=None,
+            )
+            self._sessions[session_id] = (correlation_id, session)
+            return self._copy(session)
+
+    def get(self, session_id: UUID) -> tuple[UUID, PairingSessionResponse]:
+        with self._lock:
+            stored = self._sessions.get(session_id)
+            if stored is None:
+                raise PairingSessionNotFound("pairing session does not exist")
+            return stored[0], self._copy(stored[1])
+
+    def has_running(self, linker_id: str, candidate_id: str) -> bool:
+        with self._lock:
+            return any(
+                session.linker_id == linker_id
+                and session.candidate_id == candidate_id
+                and session.status == "running"
+                for _, session in self._sessions.values()
+            )
+
+    def finish(
+        self,
+        session_id: UUID,
+        status: PairingCompletionStatus,
+        error: str | None,
+        device: DeviceManifest | None = None,
+    ) -> bool:
+        with self._lock:
+            correlation_id, session = self._get(session_id)
+            if session.status != "running":
+                return False
+            self._sessions[session_id] = (
+                correlation_id,
+                session.model_copy(update={"status": status, "error": error, "device": device}),
+            )
+            return True
+
+    def fail_running_for_linker(self, linker_id: str, error: str) -> list[UUID]:
+        with self._lock:
+            failed: list[UUID] = []
+            for session_id, (correlation_id, session) in self._sessions.items():
+                if session.linker_id == linker_id and session.status == "running":
+                    self._sessions[session_id] = (
+                        correlation_id,
+                        session.model_copy(update={"status": "failed", "error": error}),
+                    )
+                    failed.append(session_id)
+            return failed
+
+    def _get(self, session_id: UUID) -> tuple[UUID, PairingSessionResponse]:
+        stored = self._sessions.get(session_id)
+        if stored is None:
+            raise PairingSessionNotFound("pairing session does not exist")
+        return stored[0], stored[1]
+
+    @staticmethod
+    def _copy(session: PairingSessionResponse) -> PairingSessionResponse:
         return session.model_copy(deep=True)

@@ -16,6 +16,7 @@ LIGHT_COMMAND_TYPES = {
 }
 LIGHT_STATE_TYPES = {"light.state.reported", "light.state.changed"}
 DISCOVERY_TYPES = {"discovery.start", "discovery.candidate", "discovery.completed"}
+PAIRING_TYPES = {"pairing.start", "pairing.completed"}
 
 
 def _load(path: Path) -> dict:
@@ -33,8 +34,9 @@ class ContractTests(unittest.TestCase):
         command_schema = _load(CONTRACTS / "light-command.schema.json")
         state_schema = _load(CONTRACTS / "light-state.schema.json")
         discovery_schema = _load(CONTRACTS / "discovery.schema.json")
+        pairing_schema = _load(CONTRACTS / "pairing.schema.json")
 
-        for schema in (light_schema, capability_schema, command_schema, state_schema, discovery_schema):
+        for schema in (light_schema, capability_schema, command_schema, state_schema, discovery_schema, pairing_schema):
             self.assertEqual(
                 schema["$schema"], "https://json-schema.org/draft/2020-12/schema"
             )
@@ -43,12 +45,14 @@ class ContractTests(unittest.TestCase):
         self.assertEqual(command_schema["allOf"], [{"$ref": "envelope.schema.json"}])
         self.assertEqual(state_schema["allOf"], [{"$ref": "envelope.schema.json"}])
         self.assertEqual(discovery_schema["allOf"], [{"$ref": "envelope.schema.json"}])
+        self.assertEqual(pairing_schema["allOf"], [{"$ref": "envelope.schema.json"}])
         self.assertEqual(
             {branch["properties"]["type"]["const"] for branch in discovery_schema["oneOf"]},
             DISCOVERY_TYPES,
         )
         self.assertEqual(discovery_schema["$defs"]["start"]["properties"]["timeout_s"]["minimum"], 1)
         self.assertEqual(discovery_schema["$defs"]["start"]["properties"]["timeout_s"]["maximum"], 60)
+        self.assertEqual(pairing_schema["$defs"]["start"]["properties"]["timeout_s"]["maximum"], 60)
         manifest = _load(CONTRACTS / "link-manifest.schema.json")
         self.assertEqual(
             manifest["properties"]["devices"]["items"]["properties"]["capabilities"]["items"]["$ref"],
@@ -148,6 +152,28 @@ class ContractTests(unittest.TestCase):
                 else:
                     self.assertIn(payload["status"], {"completed", "failed"})
                     self.assertTrue(payload["error"] is None or isinstance(payload["error"], str))
+                continue
+
+            if message_type in PAIRING_TYPES:
+                self.assertIn("correlation_id", message)
+                self.assertEqual(
+                    set(payload),
+                    {"session_id", "discovery_session_id", "candidate_id", "timeout_s"}
+                    if message_type == "pairing.start"
+                    else {"session_id", "candidate_id", "status", "error", "device"},
+                )
+                UUID(payload["session_id"])
+                if message_type == "pairing.start":
+                    UUID(payload["discovery_session_id"])
+                    self.assertEqual(message["id"], message["correlation_id"])
+                    self.assertRegex(payload["candidate_id"], LIGHT_ID_PATTERN)
+                    self.assertGreaterEqual(payload["timeout_s"], 1)
+                    self.assertLessEqual(payload["timeout_s"], 60)
+                else:
+                    self.assertRegex(payload["candidate_id"], LIGHT_ID_PATTERN)
+                    self.assertEqual(payload["status"], "completed")
+                    self.assertIsNone(payload["error"])
+                    self._assert_devices([payload["device"]])
                 continue
 
             self.assertIn(message_type, LIGHT_STATE_TYPES)

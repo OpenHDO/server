@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://openhdo.org/schemas/v1/pairing.schema.json",
+  "title": "OpenHDO pairing v1 messages",
+  "description": "A bounded server-to-Linker pairing request and its abstract result.",
+  "allOf": [
+    {"$ref": "envelope.schema.json"}
+  ],
+  "oneOf": [
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "pairing.start"},
+        "payload": {"$ref": "https://openhdo.org/schemas/v1/pairing.schema.json#/$defs/start"}
+      }
+    },
+    {
+      "required": ["correlation_id", "type", "payload"],
+      "properties": {
+        "type": {"const": "pairing.completed"},
+        "payload": {"$ref": "https://openhdo.org/schemas/v1/pairing.schema.json#/$defs/completed"}
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9._-]{1,63}$"
+    },
+    "start": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "discovery_session_id", "candidate_id", "timeout_s"],
+      "properties": {
+        "session_id": {"type": "string", "format": "uuid"},
+        "discovery_session_id": {"type": "string", "format": "uuid"},
+        "candidate_id": {"$ref": "https://openhdo.org/schemas/v1/pairing.schema.json#/$defs/identifier"},
+        "timeout_s": {"type": "integer", "minimum": 1, "maximum": 60}
+      }
+    },
+    "completed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session_id", "candidate_id", "status", "error"],
+      "properties": {
+        "session_id": {"type": "string", "format": "uuid"},
+        "candidate_id": {"$ref": "https://openhdo.org/schemas/v1/pairing.schema.json#/$defs/identifier"},
+        "status": {"enum": ["completed", "failed"]},
+        "error": {"type": ["string", "null"], "maxLength": 512},
+        "device": {"oneOf": [
+          {"type": "null"},
+          {"$ref": "link-manifest.schema.json#/properties/devices/items"}
+        ]}
+      }
+    }
+  }
+}

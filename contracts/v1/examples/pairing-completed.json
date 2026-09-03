@@ -1,0 +1,25 @@
+{
+  "v": 1,
+  "id": "00000000-0000-4000-8000-000000000014",
+  "type": "pairing.completed",
+  "ts": "2026-01-01T00:00:01Z",
+  "source": "linker.example",
+  "correlation_id": "00000000-0000-4000-8000-000000000011",
+  "payload": {
+    "session_id": "00000000-0000-4000-8000-000000000012",
+    "candidate_id": "light.discovered",
+    "status": "completed",
+    "error": null,
+    "device": {
+      "id": "light.discovered",
+      "name": "Discovered light",
+      "capabilities": [{
+        "kind": "light",
+        "power": true,
+        "brightness": {"min": 0, "max": 255},
+        "color_modes": ["RGB"],
+        "rgb_channel_range": {"min": 0, "max": 255}
+      }]
+    }
+  }
+}

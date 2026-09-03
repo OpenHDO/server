@@ -7,7 +7,7 @@ server-owned admin panel. The reusable `server-dashboard` module is a separate
 client consumer and is not this panel.
 
 Hardware access belongs in the separate [OpenHDO Linker](https://github.com/OpenHDO/linker)
-process. Linker owns vendor/model details, pairing, protocol and DP mapping,
+process. Linker owns vendor/model details, physical pairing, protocol and DP mapping,
 credentials, and real-device connections; the server receives only the
 vendor-neutral contracts in `contracts/v1/`.
 
@@ -82,6 +82,9 @@ The v1 API currently includes:
 - `POST /api/v1/discovery/sessions` and
   `GET /api/v1/discovery/sessions/{session_id}` for authenticated, transient
   discovery sessions;
+- `POST /api/v1/pairing/sessions` and
+  `GET /api/v1/pairing/sessions/{session_id}` for authenticated, transient
+  pairing sessions tied to a completed discovery candidate;
 - `WS /api/v1/events` for `light.updated`;
 - `WS /api/v1/linker` is the server-initiated Linker connection; the Linker
   sends `link.register` first, then state reports and discovery replies, while
@@ -92,7 +95,9 @@ Discovery starts are forwarded on the connected Linker WebSocket as
 `discovery.start`. The server correlates replies to that envelope's `id`, keeps
 only abstract Wi-Fi candidates and their `requires_pairing` value, and marks a
 session failed when the Linker is unavailable, disconnects, or the bounded
-`1..60` second timeout expires. Session state is process-local and is not
+`1..60` second timeout expires. A selected candidate is sent to the Linker as
+`pairing.start`; only a successful `pairing.completed` with an abstract device
+adds it to the canonical inventory. Session state is process-local and is not
 durable.
 
 Server-owned persistent runtime data lives under `data/`. Server module data

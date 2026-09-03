@@ -16,9 +16,10 @@ repository ownership, naming, deployment roles, and roadmap live in the
 - persistence seams for a later durable repository;
 - the built-in server admin/configuration panel host.
 
-The server must not contain radio, USB, serial, pairing, vendor/model, device
-protocol, DP mapping, credential, or real-device connection logic. Those remain
-in the isolated `openhdo-linker` process close to the hardware. A Linker
+The server must not contain radio, USB, serial, vendor/model, device protocol,
+DP mapping, credential, physical pairing, or real-device connection logic. It
+may coordinate a bounded pairing session, but the isolated `openhdo-linker`
+process performs the real operation close to the hardware. A Linker
 registration contributes only the vendor-neutral manifest and Light capability
 defined by `contracts/v1/`.
 
@@ -78,6 +79,9 @@ The active runtime exposes these transport adapters over the same v1 model:
 - `POST /api/v1/discovery/sessions` starts an authenticated bounded discovery
   session and `GET /api/v1/discovery/sessions/{session_id}` reads its current
   process-local state;
+- `POST /api/v1/pairing/sessions` starts pairing for a candidate from a completed
+  discovery session and `GET /api/v1/pairing/sessions/{session_id}` reads its
+  current process-local state;
 - `PATCH /api/v1/lights/{id}` adapts one `power`, `brightness`, or `rgb_color`
   change plus an idempotency key into that same typed command path;
 - `WS /api/v1/linker` is opened by the server for a configured Linker and
@@ -112,7 +116,8 @@ failure, or timeout after 1..60 seconds. Candidates are never synthesized; a
 successful scan may have an empty candidate list. The candidate contract is
 intentionally limited to abstract Light capability data, Wi-Fi transport, and
 the honest
-`requires_pairing` flag.
+`requires_pairing` flag. Pairing is started separately and only a successful
+Linker result registers the candidate as a canonical Light.
 
 Compatibility rules:
 

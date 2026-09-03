@@ -23,6 +23,9 @@ authentication, bounded message sizes, timeouts, and reconnect handling.
 - Discovery uses the same request/reply rule: `discovery.start` sets
   `correlation_id` equal to its own envelope `id`; candidate and completion
   messages repeat that id.
+- Pairing uses the same request/reply rule: `pairing.start` sets
+  `correlation_id` equal to its own envelope `id`; `pairing.completed` repeats
+  that id and carries an abstract device only on success.
 
 ## Light v1
 
@@ -52,9 +55,9 @@ Linker discovery may attach devices to the existing `link.register` payload.
 Each device has an abstract capability list; the Light descriptor is defined
 by [`light-capability.schema.json`](light-capability.schema.json) and contains
 only `power`, a brightness range of 0 to 255, optional `RGB`/`RGBW`/`CCT`
-color modes, and an RGB channel range of 0 to 255. Device pairing, protocol,
+color modes, and an RGB channel range of 0 to 255. Physical pairing, protocol,
 DP mapping, vendor/model details, local keys, and real-device connections are
-Linker concerns and are not part of the server contract.
+Linker concerns and are not part of the Light manifest.
 
 `correlation_id` refers to the envelope `id` of the request being correlated.
 For a command retry, the envelope `id` may change, but `command_id` and
@@ -98,6 +101,15 @@ discovery vertical slice:
 
 The server exposes authenticated POST/GET session endpoints and forwards the
 start message over the existing Linker WebSocket. Sessions are process-local;
-the server times out bounded scans and never manufactures candidates. Linker
-pairing, vendor/model data, IPs, local keys, and DP fields are outside this
-contract.
+the server times out bounded scans and never manufactures candidates. Physical
+Linker pairing, vendor/model data, IPs, local keys, and DP fields are outside
+the discovery contract.
+
+## Pairing v1
+
+[`pairing.schema.json`](pairing.schema.json) defines the server-owned pairing
+handshake. `pairing.start` references one completed discovery session and one
+candidate. The Linker performs real vendor-specific pairing locally and returns
+`pairing.completed`; only its abstract `device` payload is accepted by the
+server. Failed, timed-out, disconnected, or stale sessions do not create
+devices.

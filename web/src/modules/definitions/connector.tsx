@@ -333,25 +333,29 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
           </form> : <div className="mt-4 grid gap-4"><p className="text-sm text-neutral-400">Delete <span className="text-neutral-100">{linker.name}</span> and its connected devices?</p>{actionError && <StatusMessage tone="error" icon={<WarningCircle size={17} aria-hidden="true" />} message={actionError} />}<div className="flex justify-end gap-2"><button type="button" onClick={() => setAction(null)} disabled={actionPending} className="h-10 rounded-md border border-neutral-700 px-4 text-sm text-neutral-300 transition hover:border-neutral-500 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60">Cancel</button><button type="button" onClick={() => void deleteLinker()} disabled={actionPending} className="inline-flex h-10 items-center gap-2 rounded-md bg-red-700 px-4 text-sm font-semibold text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-60">{actionPending && <CircleNotch className="animate-spin" size={17} aria-hidden="true" />}Delete</button></div></div>}
         </div>
       </div>}
-      {showAddDevice && <AddDeviceDialog api={api} linkerId={linker.id} available={linker.available} onClose={() => setShowAddDevice(false)} />}
+      {showAddDevice && <AddDeviceDialog api={api} linkerId={linker.id} available={linker.available} onClose={() => setShowAddDevice(false)} onPaired={onRefresh} />}
     </>
   );
 }
 
-function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModuleContext["api"]; linkerId: string; available: boolean; onClose: () => void }) {
+function AddDeviceDialog({ api, linkerId, available, onClose, onPaired }: { api: PanelModuleContext["api"]; linkerId: string; available: boolean; onClose: () => void; onPaired: () => void }) {
   const [category, setCategory] = useState<"bulb" | null>(null);
   const [searchState, setSearchState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [searchError, setSearchError] = useState<string | null>(null);
   const [candidates, setCandidates] = useState<DiscoveryCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
+  const [discoverySessionId, setDiscoverySessionId] = useState<string | null>(null);
+  const [pairingState, setPairingState] = useState<"idle" | "loading" | "error">("idle");
+  const [pairingError, setPairingError] = useState<string | null>(null);
+  const busy = searchState === "loading" || pairingState === "loading";
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && searchState !== "loading") onClose();
+      if (event.key === "Escape" && !busy) onClose();
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [onClose, searchState]);
+  }, [busy, onClose]);
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -364,6 +368,9 @@ function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModu
     setSearchError(null);
     setCandidates([]);
     setSelectedCandidate(null);
+    setDiscoverySessionId(null);
+    setPairingState("idle");
+    setPairingError(null);
     try {
       const response = await api.request("/api/v1/discovery/sessions", {
         method: "POST",
@@ -372,6 +379,7 @@ function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModu
       });
       if (!response.ok) throw new Error(await readError(response));
       const started = (await response.json()) as { session_id: string };
+      setDiscoverySessionId(started.session_id);
       for (let attempt = 0; attempt < 14; attempt += 1) {
         const result = await api.request(`/api/v1/discovery/sessions/${encodeURIComponent(started.session_id)}`);
         if (!result.ok) throw new Error(await readError(result));
@@ -391,15 +399,48 @@ function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModu
     }
   }
 
+  async function pair() {
+    if (!selectedCandidate || !discoverySessionId) return;
+    setPairingState("loading");
+    setPairingError(null);
+    try {
+      const response = await api.request("/api/v1/pairing/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ linker_id: linkerId, discovery_session_id: discoverySessionId, candidate_id: selectedCandidate, timeout_s: 30 }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      const started = (await response.json()) as { session_id: string };
+      for (let attempt = 0; attempt < 62; attempt += 1) {
+        const result = await api.request(`/api/v1/pairing/sessions/${encodeURIComponent(started.session_id)}`);
+        if (!result.ok) throw new Error(await readError(result));
+        const session = (await result.json()) as { status: "running" | "completed" | "failed"; error: string | null };
+        if (session.status !== "running") {
+          if (session.status === "completed") {
+            onPaired();
+            onClose();
+            return;
+          }
+          throw new Error(session.error ?? "Unable to pair device");
+        }
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+      }
+      throw new Error("Pairing timed out");
+    } catch (error) {
+      setPairingState("error");
+      setPairingError(error instanceof Error ? error.message : "Unable to pair device");
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && searchState !== "loading") onClose(); }}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-labelledby="add-device-title" className="w-full max-w-lg rounded-lg border border-neutral-700 bg-neutral-950 p-5 shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-2">
-            {category && <button type="button" aria-label="Back to device types" onClick={() => setCategory(null)} disabled={searchState === "loading"} className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"><ArrowLeft size={18} aria-hidden="true" /></button>}
+            {category && <button type="button" aria-label="Back to device types" onClick={() => setCategory(null)} disabled={busy} className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60"><ArrowLeft size={18} aria-hidden="true" /></button>}
             <h2 id="add-device-title" className="font-brand text-xl font-bold text-neutral-100">Add device</h2>
           </div>
-          <button type="button" aria-label="Close dialog" onClick={onClose} disabled={searchState === "loading"} className="grid h-9 w-9 place-items-center rounded-md text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60"><X size={19} aria-hidden="true" /></button>
+          <button type="button" aria-label="Close dialog" onClick={onClose} disabled={busy} className="grid h-9 w-9 place-items-center rounded-md text-neutral-400 transition hover:bg-neutral-800 hover:text-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60"><X size={19} aria-hidden="true" /></button>
         </div>
         {!category ? <div className="mt-5 grid grid-cols-2 gap-3">
           <button type="button" onClick={() => setCategory("bulb")} className="flex aspect-square flex-col items-center justify-center gap-3 rounded-lg border border-neutral-800 bg-neutral-900 p-4 text-neutral-200 transition hover:border-accent hover:bg-neutral-900/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
@@ -408,7 +449,7 @@ function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModu
           </button>
         </div> : <div className="mt-5 grid gap-4">
           <form className="flex justify-end" onSubmit={(event) => void search(event)}>
-            <button type="submit" disabled={searchState === "loading"} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{searchState === "loading" ? <CircleNotch className="animate-spin" size={17} aria-hidden="true" /> : <MagnifyingGlass size={17} aria-hidden="true" />}Find</button>
+            <button type="submit" disabled={busy} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-accent px-3 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{searchState === "loading" ? <CircleNotch className="animate-spin" size={17} aria-hidden="true" /> : <MagnifyingGlass size={17} aria-hidden="true" />}Find</button>
           </form>
           {searchError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={searchError} />}
           {searchState === "idle" && <p className="text-sm text-neutral-500">Find a bulb on the Linker network.</p>}
@@ -416,10 +457,12 @@ function AddDeviceDialog({ api, linkerId, available, onClose }: { api: PanelModu
           {candidates.length > 0 && <div className="grid gap-2">
             {candidates.map((candidate) => <button key={candidate.candidate_id} type="button" aria-pressed={selectedCandidate === candidate.candidate_id} onClick={() => setSelectedCandidate(candidate.candidate_id)} className={`flex items-center gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${selectedCandidate === candidate.candidate_id ? "border-accent bg-accent/10" : "border-neutral-800 hover:border-accent"}`}>
               <img src="/admin/devices/bulb.png" alt="" className="h-12 w-12 shrink-0 object-contain" />
-              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-neutral-100">{candidate.name}</span><span className="block text-xs text-neutral-500">{candidate.requires_pairing ? "Pairing required" : candidate.transport}</span></span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-neutral-100">{candidate.name}</span><span className="block text-xs text-neutral-500">{candidate.requires_pairing ? "Pairing required" : "Ready to pair"}</span></span>
               {selectedCandidate === candidate.candidate_id && <CheckCircle className="shrink-0 text-accent-muted" weight="fill" size={19} aria-hidden="true" />}
             </button>)}
           </div>}
+          {pairingError && <StatusMessage tone="error" icon={<WarningCircle size={18} aria-hidden="true" />} message={pairingError} />}
+          {candidates.length > 0 && <div className="flex justify-end border-t border-neutral-800 pt-4"><button type="button" onClick={() => void pair()} disabled={!selectedCandidate || !discoverySessionId || busy} className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-4 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60">{pairingState === "loading" && <CircleNotch className="animate-spin" size={17} aria-hidden="true" />}{pairingState === "error" ? "Try again" : "Continue"}</button></div>}
         </div>}
       </div>
     </div>
