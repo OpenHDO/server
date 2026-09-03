@@ -1,12 +1,9 @@
 import { Plus } from "@phosphor-icons/react/Plus";
 import { ArrowClockwise } from "@phosphor-icons/react/ArrowClockwise";
 import { ArrowLeft } from "@phosphor-icons/react/ArrowLeft";
-import { Bluetooth } from "@phosphor-icons/react/Bluetooth";
-import { Broadcast } from "@phosphor-icons/react/Broadcast";
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
-import { CirclesThree } from "@phosphor-icons/react/CirclesThree";
 import { DotsThreeVertical } from "@phosphor-icons/react/DotsThreeVertical";
 import { Lightbulb } from "@phosphor-icons/react/Lightbulb";
 import { MagnifyingGlass } from "@phosphor-icons/react/MagnifyingGlass";
@@ -72,6 +69,12 @@ type DiscoverySession = {
   error: string | null;
 };
 
+const protocolIcons: Record<string, string> = {
+  bluetooth: "/admin/brand/protocols/bluetooth.svg",
+  zigbee: "/admin/brand/protocols/zigbee.svg",
+  matter: "/admin/brand/protocols/matter.svg",
+};
+
 type RequestError = { detail?: string };
 
 async function readError(response: Response) {
@@ -84,6 +87,13 @@ function normalizeLinkers(payload: { linkers: ApiLinker[] }): Linker[] {
     ...linker,
     bulbs: devices.map(({ light_id, ...bulb }) => ({ id: light_id, ...bulb })),
   }));
+}
+
+function TransportIcon({ transport }: { transport: string }) {
+  if (transport === "wifi") return <WifiHigh size={16} aria-hidden="true" />;
+  const asset = protocolIcons[transport];
+  if (!asset) return <PlugsConnected size={16} aria-hidden="true" />;
+  return <span aria-hidden="true" className="block h-4 w-4 bg-current [mask-position:center] [mask-repeat:no-repeat] [mask-size:contain]" style={{ maskImage: `url("${asset}")`, WebkitMaskImage: `url("${asset}")` }} />;
 }
 
 function ConnectorModule({ context }: PanelModuleProps) {
@@ -298,7 +308,7 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
         </button>
         <div className="flex shrink-0 items-center gap-1">
           <div className="hidden items-center gap-2 px-1 text-neutral-300 min-[390px]:flex">
-            {linker.transports.map((transport) => <span key={transport} className={transport === "wifi" && linker.available ? "text-accent-muted" : "text-red-400"} title={transport} aria-label={transport}>{transport === "wifi" ? <WifiHigh size={16} aria-hidden="true" /> : transport === "bluetooth" ? <Bluetooth size={16} aria-hidden="true" /> : transport === "zigbee" ? <Broadcast size={16} aria-hidden="true" /> : transport === "matter" ? <CirclesThree size={16} aria-hidden="true" /> : <PlugsConnected size={16} aria-hidden="true" />}</span>)}
+            {linker.transports.map((transport) => <span key={transport} className={transport === "wifi" && linker.available ? "text-accent-muted" : "text-red-400"} title={transport} aria-label={transport}><TransportIcon transport={transport} /></span>)}
           </div>
           <span className={`grid h-8 w-8 place-items-center ${linker.available ? "text-accent-muted" : "text-red-400"}`} role="img" aria-label={linker.available ? "Linker available" : "Linker offline"} title={linker.available ? "Available" : "Offline"}>{linker.available ? <CheckCircle weight="fill" size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}</span>
           {canManage && <div className="relative" ref={menuRef}>
