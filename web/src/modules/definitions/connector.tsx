@@ -540,7 +540,7 @@ function BulbCard({ bulb, api }: { bulb: Bulb; api: PanelModuleContext["api"] })
 
 function StatusMessage({ icon, message, tone = "neutral" }: { icon: ReactNode; message: string; tone?: "neutral" | "error" | "success" }) {
   const color = tone === "error" ? "text-red-300" : tone === "success" ? "text-accent-muted" : "text-neutral-500";
-  return <div className={`flex items-center gap-2 border-y border-neutral-800 py-4 text-sm ${color}`}>{icon}{message}</div>;
+  return <div className={`flex items-center gap-2 py-4 text-sm ${tone === "error" ? "" : "border-y border-neutral-800"} ${color}`}>{icon}{message}</div>;
 }
 
 registerModule({
