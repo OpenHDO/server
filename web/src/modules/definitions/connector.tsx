@@ -468,7 +468,7 @@ function AddDeviceDialog({ api, linkerId, available, onClose, onPaired }: { api:
           {candidates.length > 0 && <div className="grid gap-2">
             {candidates.map((candidate) => <button key={candidate.candidate_id} type="button" aria-pressed={selectedCandidate === candidate.candidate_id} onClick={() => setSelectedCandidate(candidate.candidate_id)} className={`flex items-center gap-3 rounded-md border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${selectedCandidate === candidate.candidate_id ? "border-accent bg-accent/10" : "border-neutral-800 hover:border-accent"}`}>
               <img src="/admin/devices/bulb.png" alt="" className="h-12 w-12 shrink-0 object-contain" />
-              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-neutral-100">{candidate.name}</span><span className="block text-xs text-neutral-500">{candidate.requires_pairing ? "Pairing required" : "Ready to pair"}</span></span>
+              <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium text-neutral-100">{candidate.name}</span><span className="block truncate text-xs text-neutral-500">{candidate.candidate_id}</span></span>
               {selectedCandidate === candidate.candidate_id && <CheckCircle className="shrink-0 text-accent-muted" weight="fill" size={19} aria-hidden="true" />}
             </button>)}
           </div>}
