@@ -419,7 +419,18 @@ class ServerApiTests(unittest.TestCase):
         application = create_linker_app()
         with TestClient(application) as client:
             with client.websocket_connect("/api/v1/linkers/linker.test") as linker:
-                linker.send_json(register_message())
+                linker.send_json(
+                    envelope(
+                        "link.register",
+                        "linker.test",
+                        {
+                            "id": "linker.test",
+                            "version": "1.0.0",
+                            "name": "Test Linker",
+                            "transports": ["local"],
+                        },
+                    )
+                )
                 discovery = client.post(
                     "/api/v1/discovery/sessions",
                     json={"linker_id": "linker.test", "timeout_s": 3},
@@ -448,7 +459,7 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(pairing_start["type"], "pairing.start")
                 self.assertEqual(pairing_start["payload"]["candidate_id"], "light.discovered")
                 self.assertNotIn("device_id", pairing_start["payload"])
-                self.assertEqual(len(client.get("/api/v1/lights").json()["lights"]), 1)
+                self.assertEqual(client.get("/api/v1/lights").json()["lights"], [])
 
                 linker.send_json(pairing_completed(pairing.json()["session_id"], pairing_start["id"]))
                 completed = client.get(f"/api/v1/pairing/sessions/{pairing.json()['session_id']}")
@@ -456,18 +467,18 @@ class ServerApiTests(unittest.TestCase):
                 self.assertEqual(completed.json()["status"], "completed")
                 self.assertEqual(
                     {light["light_id"] for light in client.get("/api/v1/lights").json()["lights"]},
-                    {"light.living", "light.discovered"},
+                    {"light.discovered"},
                 )
                 manifest = application.state.linker_registry.list()[0].manifest
                 self.assertIsNotNone(manifest)
                 self.assertEqual(
                     {device.id for device in manifest.devices},
-                    {"light.living", "light.discovered"},
+                    {"light.discovered"},
                 )
         with TestClient(create_app(application.state.settings)) as restarted:
             self.assertEqual(
                 {light["light_id"] for light in restarted.get("/api/v1/lights").json()["lights"]},
-                {"light.living", "light.discovered"},
+                {"light.discovered"},
             )
 
     def test_failed_pairing_does_not_create_a_phantom_light(self) -> None:
