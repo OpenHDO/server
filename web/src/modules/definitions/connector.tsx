@@ -1,16 +1,18 @@
 import { Plus } from "@phosphor-icons/react/Plus";
 import { ArrowClockwise } from "@phosphor-icons/react/ArrowClockwise";
 import { ArrowLeft } from "@phosphor-icons/react/ArrowLeft";
+import { Bluetooth } from "@phosphor-icons/react/Bluetooth";
+import { Broadcast } from "@phosphor-icons/react/Broadcast";
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
 import { CheckCircle } from "@phosphor-icons/react/CheckCircle";
 import { CircleNotch } from "@phosphor-icons/react/CircleNotch";
+import { CirclesThree } from "@phosphor-icons/react/CirclesThree";
 import { DotsThreeVertical } from "@phosphor-icons/react/DotsThreeVertical";
 import { Lightbulb } from "@phosphor-icons/react/Lightbulb";
 import { MagnifyingGlass } from "@phosphor-icons/react/MagnifyingGlass";
 import { PencilSimple } from "@phosphor-icons/react/PencilSimple";
 import { Power } from "@phosphor-icons/react/Power";
 import { PlugsConnected } from "@phosphor-icons/react/PlugsConnected";
-import { Tag } from "@phosphor-icons/react/Tag";
 import { Trash } from "@phosphor-icons/react/Trash";
 import { WarningCircle } from "@phosphor-icons/react/WarningCircle";
 import { WifiHigh } from "@phosphor-icons/react/WifiHigh";
@@ -296,8 +298,7 @@ function LinkerGroup({ linker, api, canManage, onRefresh }: { linker: Linker; ap
         </button>
         <div className="flex shrink-0 items-center gap-1">
           <div className="hidden items-center gap-2 px-1 text-neutral-300 min-[390px]:flex">
-            {linker.transports.map((transport) => <span key={transport} title={transport} aria-label={transport}>{transport === "wifi" ? <WifiHigh size={16} aria-hidden="true" /> : <PlugsConnected size={16} aria-hidden="true" />}</span>)}
-            {linker.version && <span title={`Version ${linker.version}`} aria-label={`Version ${linker.version}`}><Tag size={15} aria-hidden="true" /></span>}
+            {linker.transports.map((transport) => <span key={transport} className={transport === "wifi" && linker.available ? "text-accent-muted" : "text-red-400"} title={transport} aria-label={transport}>{transport === "wifi" ? <WifiHigh size={16} aria-hidden="true" /> : transport === "bluetooth" ? <Bluetooth size={16} aria-hidden="true" /> : transport === "zigbee" ? <Broadcast size={16} aria-hidden="true" /> : transport === "matter" ? <CirclesThree size={16} aria-hidden="true" /> : <PlugsConnected size={16} aria-hidden="true" />}</span>)}
           </div>
           <span className={`grid h-8 w-8 place-items-center ${linker.available ? "text-accent-muted" : "text-red-400"}`} role="img" aria-label={linker.available ? "Linker available" : "Linker offline"} title={linker.available ? "Available" : "Offline"}>{linker.available ? <CheckCircle weight="fill" size={18} aria-hidden="true" /> : <X size={18} aria-hidden="true" />}</span>
           {canManage && <div className="relative" ref={menuRef}>
