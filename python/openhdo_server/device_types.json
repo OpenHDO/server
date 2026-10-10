@@ -1,0 +1,1116 @@
+{
+  "camera": {
+    "name": "Видеокамера",
+    "group": "Media",
+    "kind": "sp",
+    "on": "camera-on.png",
+    "off": "camera-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-camera",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.video_stream": []
+    }
+  },
+  "cooking": {
+    "name": "Холодильник",
+    "group": "Kitchen",
+    "kind": "cooking",
+    "on": "cooking-on.png",
+    "off": "cooking-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-cooking",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "program",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        "express",
+        "normal"
+      ],
+      "devices.capabilities.range": [
+        "temperature"
+      ],
+      "devices.capabilities.toggle": [
+        "controls_locked",
+        "keep_warm",
+        "pause"
+      ],
+      "devices.properties.float": [
+        "temperature"
+      ]
+    }
+  },
+  "cooking.coffee_maker": {
+    "name": "Кофеварка",
+    "group": "Kitchen",
+    "kind": "cooking.coffee_maker",
+    "on": "cooking.coffee_maker-on.png",
+    "off": "cooking.coffee_maker-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-cooking-coffee-maker",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "coffee_mode",
+        "americano, cappuccino, double_espresso, espresso, latte",
+        "program",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten"
+      ],
+      "devices.properties.float": [
+        "water_level"
+      ],
+      "devices.properties.event": [
+        "water_level"
+      ]
+    }
+  },
+  "cooking.grill.aero": {
+    "name": "Аэрогриль",
+    "group": "Kitchen",
+    "kind": "cooking.grill.aero",
+    "on": "cooking.grill.aero-on.png",
+    "off": "cooking.grill.aero-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-cooking-grill-aero",
+    "recommended": {}
+  },
+  "cooking.kettle": {
+    "name": "Умный чайник",
+    "group": "Kitchen",
+    "kind": "cooking.kettle",
+    "on": "cooking.kettle-on.png",
+    "off": "cooking.kettle-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-cooking-kettle",
+    "recommended": {
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "tea_mode",
+        "black_tea",
+        "flower_tea",
+        "green_tea",
+        "herbal_tea",
+        "oolong_tea",
+        "puerh_tea",
+        "red_tea",
+        "white_tea"
+      ],
+      "devices.capabilities.range": [
+        "temperature"
+      ],
+      "devices.capabilities.toggle": [
+        "backlight",
+        "controls_locked",
+        "keep_warm"
+      ],
+      "devices.properties.float": [
+        "temperature",
+        "water_level"
+      ],
+      "devices.properties.event": [
+        "water_level"
+      ]
+    }
+  },
+  "cooking.multicooker": {
+    "name": "Мультиварка",
+    "group": "Kitchen",
+    "kind": "cooking.multicooker",
+    "on": "cooking.multicooker-on.png",
+    "off": "cooking.multicooker-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-cooking-multicooker",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.toggle": [
+        "controls_locked",
+        "keep_warm"
+      ],
+      "devices.capabilities.range": [
+        "temperature"
+      ],
+      "devices.capabilities.mode": [
+        "program",
+        "vacuum",
+        "boiling",
+        "baking",
+        "dessert",
+        "baby_food",
+        "fowl",
+        "frying",
+        "yogurt",
+        "cereals",
+        "macaroni",
+        "milk_porridge",
+        "multicooker",
+        "steam",
+        "pasta",
+        "pizza",
+        "pilaf",
+        "sauce",
+        "soup",
+        "stewing",
+        "slow_cook",
+        "deep_fryer",
+        "bread",
+        "aspic",
+        "cheesecake",
+        "preheat"
+      ]
+    }
+  },
+  "dishwasher": {
+    "name": "Посудомоечная машина",
+    "group": "Appliances",
+    "kind": "dishwasher",
+    "on": "dishwasher-on.png",
+    "off": "dishwasher-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-dishwasher",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.toggle": [
+        "controls_locked"
+      ],
+      "devices.capabilities.mode": [
+        "dishwashing",
+        "auto",
+        "eco",
+        "quiet",
+        "express",
+        "glass",
+        "intensive",
+        "pre_rinse"
+      ]
+    }
+  },
+  "humidifier": {
+    "name": "Увлажнитель воздуха",
+    "group": "Climate",
+    "kind": "jsq",
+    "on": "humidifier-on.png",
+    "off": "humidifier-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-humidifier",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "fan_speed",
+        "auto",
+        "high",
+        "low",
+        "medium",
+        "quiet",
+        "turbo"
+      ],
+      "devices.capabilities.range": [
+        "humidity"
+      ],
+      "devices.capabilities.toggle": [
+        "ionization"
+      ],
+      "devices.properties.float": [
+        "humidity",
+        "temperature",
+        "water_level"
+      ],
+      "devices.properties.event": [
+        "water_level"
+      ]
+    }
+  },
+  "iron": {
+    "name": "Утюг",
+    "group": "Appliances",
+    "kind": "iron",
+    "on": "iron-on.png",
+    "off": "iron-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-iron",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "temperature"
+      ],
+      "devices.capabilities.mode": [
+        "program",
+        "turbo",
+        "eco",
+        "steam",
+        "auto",
+        "one",
+        "two"
+      ]
+    }
+  },
+  "light": {
+    "name": "Лампочка",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light-on.png",
+    "off": "light-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ],
+      "devices.capabilities.toggle": [
+        "backlight"
+      ]
+    }
+  },
+  "light.ceiling": {
+    "name": "Люстра",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light.ceiling-on.png",
+    "off": "light.ceiling-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light-ceiling",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ],
+      "devices.capabilities.toggle": [
+        "backlight"
+      ]
+    }
+  },
+  "light.dimmable": {
+    "name": "Умный диммер",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light.dimmable-on.png",
+    "off": "light.dimmable-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light-dimmable",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ]
+    }
+  },
+  "light.garland": {
+    "name": "Гирлянда",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light.garland-on.png",
+    "off": "light.garland-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light-garland",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ]
+    }
+  },
+  "light.lamp": {
+    "name": "Настольная лампа",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light.lamp-on.png",
+    "off": "light.lamp-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light-lamp",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ],
+      "devices.capabilities.toggle": [
+        "backlight"
+      ]
+    }
+  },
+  "light.sconce": {
+    "name": "Бра",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light.sconce-on.png",
+    "off": "light.sconce-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light-sconce",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ]
+    }
+  },
+  "light.strip": {
+    "name": "Диодная лента",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light.strip-on.png",
+    "off": "light.strip-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light-strip",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ]
+    }
+  },
+  "light.torchere": {
+    "name": "Торшер",
+    "group": "Lighting",
+    "kind": "dj",
+    "on": "light.torchere-on.png",
+    "off": "light.torchere-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-light-torchere",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.range": [
+        "brightness"
+      ]
+    }
+  },
+  "media_device": {
+    "name": "DVD-плеер и другие медиаустройства",
+    "group": "Media",
+    "kind": "media_device",
+    "on": "media_device-on.png",
+    "off": "media_device-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-media",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "input_source",
+        "one, two, three, four, five, six, seven, eight, nine, ten"
+      ],
+      "devices.capabilities.range": [
+        "channel",
+        "volume"
+      ],
+      "devices.capabilities.toggle": [
+        "mute",
+        "pause"
+      ]
+    }
+  },
+  "media_device.receiver": {
+    "name": "Спутниковый ресивер",
+    "group": "Media",
+    "kind": "media_device.receiver",
+    "on": "media_device.receiver-on.png",
+    "off": "media_device.receiver-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-media-receiver",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "channel",
+        "volume"
+      ],
+      "devices.capabilities.mode": [
+        "input_source",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten"
+      ],
+      "devices.capabilities.toggle": [
+        "mute",
+        "pause"
+      ]
+    }
+  },
+  "media_device.tv": {
+    "name": "Умный телевизор",
+    "group": "Media",
+    "kind": "media_device.tv",
+    "on": "media_device.tv-on.png",
+    "off": "media_device.tv-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-media-tv",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "input_source",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten"
+      ],
+      "devices.capabilities.range": [
+        "channel",
+        "volume"
+      ],
+      "devices.capabilities.toggle": [
+        "backlight",
+        "controls_locked",
+        "mute",
+        "pause"
+      ]
+    }
+  },
+  "media_device.tv_box": {
+    "name": "Умная ТВ-приставка",
+    "group": "Media",
+    "kind": "media_device.tv_box",
+    "on": "media_device.tv_box-on.png",
+    "off": "media_device.tv_box-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-media-tv-box",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "channel",
+        "volume"
+      ],
+      "devices.capabilities.toggle": [
+        "mute",
+        "pause"
+      ]
+    }
+  },
+  "openable": {
+    "name": "Дверь",
+    "group": "Opening",
+    "kind": "openable",
+    "on": "openable-on.png",
+    "off": "openable-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-openable",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "work_speed",
+        "fast, medium, slow"
+      ],
+      "devices.capabilities.range": [
+        "open"
+      ],
+      "devices.properties.event": [
+        "open"
+      ]
+    }
+  },
+  "openable.curtain": {
+    "name": "Шторы",
+    "group": "Opening",
+    "kind": "cl",
+    "on": "openable.curtain-on.png",
+    "off": "openable.curtain-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-openable-curtain",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "work_speed",
+        "fast, medium, slow"
+      ],
+      "devices.capabilities.range": [
+        "open"
+      ],
+      "devices.properties.event": [
+        "open"
+      ]
+    }
+  },
+  "openable.door_lock": {
+    "name": "Замки",
+    "group": "Opening",
+    "kind": "openable.door_lock",
+    "on": "openable.door_lock-on.png",
+    "off": "openable.door_lock-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-openable-door-lock",
+    "recommended": {}
+  },
+  "openable.valve": {
+    "name": "Шаровой кран",
+    "group": "Opening",
+    "kind": "openable.valve",
+    "on": "openable.valve-on.png",
+    "off": "openable.valve-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-openable-valve",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "open"
+      ]
+    }
+  },
+  "other": {
+    "name": "Остальные устройства",
+    "group": "Appliances",
+    "kind": "other",
+    "on": "other-on.png",
+    "off": "other-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-other",
+    "recommended": {}
+  },
+  "pet_drinking_fountain": {
+    "name": "Поилка",
+    "group": "Pet devices",
+    "kind": "pet_drinking_fountain",
+    "on": "pet_drinking_fountain-on.png",
+    "off": "pet_drinking_fountain-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-pet-drinking-fountain",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.properties.event": [
+        "water_level",
+        "empty, low, normal"
+      ],
+      "devices.properties.float": [
+        "water_level",
+        "unit.percent"
+      ]
+    }
+  },
+  "pet_feeder": {
+    "name": "Кормушка",
+    "group": "Pet devices",
+    "kind": "pet_feeder",
+    "on": "pet_feeder-on.png",
+    "off": "pet_feeder-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-pet-feeder",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.properties.event": [
+        "food_level",
+        "empty, low, normal"
+      ],
+      "devices.properties.float": [
+        "food_level",
+        "unit.percent"
+      ]
+    }
+  },
+  "purifier": {
+    "name": "Очиститель воздуха",
+    "group": "Climate",
+    "kind": "purifier",
+    "on": "purifier-on.png",
+    "off": "purifier-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-purifier",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "fan_speed",
+        "quiet, turbo",
+        "auto, high, low, medium, quiet, turbo"
+      ],
+      "devices.capabilities.toggle": [
+        "ionization"
+      ],
+      "devices.properties.float": [
+        "temperature"
+      ]
+    }
+  },
+  "sensor": {
+    "name": "Датчик движения",
+    "group": "Sensors",
+    "kind": "wsdcg",
+    "on": "sensor-on.png",
+    "off": "sensor-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor",
+    "recommended": {
+      "devices.properties.event": [
+        "battery_level",
+        "button",
+        "gas",
+        "motion",
+        "open",
+        "smoke",
+        "vibration",
+        "water_level",
+        "water_leak"
+      ],
+      "devices.properties.float": [
+        "battery_level",
+        "co2_level",
+        "humidity",
+        "illumination",
+        "pm1_density",
+        "pm2.5_density",
+        "pm10_density",
+        "pressure",
+        "temperature",
+        "tvoc",
+        "water_level"
+      ]
+    }
+  },
+  "sensor.button": {
+    "name": "Умная кнопка",
+    "group": "Sensors",
+    "kind": "wsdcg",
+    "on": "sensor.button-on.png",
+    "off": "sensor.button-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-button",
+    "recommended": {
+      "devices.properties.event": [
+        "button"
+      ]
+    }
+  },
+  "sensor.climate": {
+    "name": "Датчик климата",
+    "group": "Sensors",
+    "kind": "wsdcg",
+    "on": "sensor.climate-on.png",
+    "off": "sensor.climate-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-climate",
+    "recommended": {
+      "devices.properties.float": [
+        "temperature",
+        "humidity"
+      ]
+    }
+  },
+  "sensor.gas": {
+    "name": "Датчик газа",
+    "group": "Sensors",
+    "kind": "rqbj",
+    "on": "sensor.gas-on.png",
+    "off": "sensor.gas-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-gas",
+    "recommended": {
+      "devices.properties.event": [
+        "gas"
+      ]
+    }
+  },
+  "sensor.illumination": {
+    "name": "Датчик освещенности",
+    "group": "Sensors",
+    "kind": "wsdcg",
+    "on": "sensor.illumination-on.png",
+    "off": "sensor.illumination-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-illumination",
+    "recommended": {
+      "devices.properties.float": [
+        "illumination"
+      ]
+    }
+  },
+  "sensor.motion": {
+    "name": "Датчик движения",
+    "group": "Sensors",
+    "kind": "pir",
+    "on": "sensor.motion-on.png",
+    "off": "sensor.motion-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-motion",
+    "recommended": {
+      "devices.properties.event": [
+        "motion"
+      ]
+    }
+  },
+  "sensor.open": {
+    "name": "Датчик открытия двери",
+    "group": "Sensors",
+    "kind": "mcs",
+    "on": "sensor.open-on.png",
+    "off": "sensor.open-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-open",
+    "recommended": {
+      "devices.properties.event": [
+        "open"
+      ]
+    }
+  },
+  "sensor.smoke": {
+    "name": "Датчик дыма",
+    "group": "Sensors",
+    "kind": "ywbj",
+    "on": "sensor.smoke-on.png",
+    "off": "sensor.smoke-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-smoke",
+    "recommended": {
+      "devices.properties.event": [
+        "smoke"
+      ]
+    }
+  },
+  "sensor.vibration": {
+    "name": "Датчик вибрации",
+    "group": "Sensors",
+    "kind": "wsdcg",
+    "on": "sensor.vibration-on.png",
+    "off": "sensor.vibration-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-vibration",
+    "recommended": {
+      "devices.properties.event": [
+        "vibration"
+      ]
+    }
+  },
+  "sensor.water_leak": {
+    "name": "Датчик протечки воды",
+    "group": "Sensors",
+    "kind": "sj",
+    "on": "sensor.water_leak-on.png",
+    "off": "sensor.water_leak-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-sensor-water_leak",
+    "recommended": {
+      "devices.properties.event": [
+        "water_leak"
+      ]
+    }
+  },
+  "smart_meter": {
+    "name": "Счетчик",
+    "group": "Meters",
+    "kind": "smart_meter",
+    "on": "smart_meter-on.png",
+    "off": "smart_meter-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-smart_meter",
+    "recommended": {
+      "devices.properties.float": [
+        "meter"
+      ]
+    }
+  },
+  "smart_meter.cold_water": {
+    "name": "Счетчик холодной воды",
+    "group": "Meters",
+    "kind": "smart_meter.cold_water",
+    "on": "smart_meter.cold_water-on.png",
+    "off": "smart_meter.cold_water-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-smart_meter-cold_water",
+    "recommended": {
+      "devices.properties.float": [
+        "water_meter",
+        "unit.cubic_meter"
+      ]
+    }
+  },
+  "smart_meter.electricity": {
+    "name": "Счетчик электроэнергии",
+    "group": "Meters",
+    "kind": "smart_meter.electricity",
+    "on": "smart_meter.electricity-on.png",
+    "off": "smart_meter.electricity-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-smart_meter-electricity",
+    "recommended": {
+      "devices.properties.float": [
+        "electricity_meter",
+        "unit.kilowatt_hour"
+      ]
+    }
+  },
+  "smart_meter.gas": {
+    "name": "Счетчик газа",
+    "group": "Meters",
+    "kind": "smart_meter.gas",
+    "on": "smart_meter.gas-on.png",
+    "off": "smart_meter.gas-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-smart_meter-gas",
+    "recommended": {
+      "devices.properties.float": [
+        "gas_meter",
+        "unit.cubic_meter"
+      ]
+    }
+  },
+  "smart_meter.heat": {
+    "name": "Счетчик тепла",
+    "group": "Meters",
+    "kind": "smart_meter.heat",
+    "on": "smart_meter.heat-on.png",
+    "off": "smart_meter.heat-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-smart_meter-heat",
+    "recommended": {
+      "devices.properties.float": [
+        "heat_meter",
+        "unit.gigacalorie"
+      ]
+    }
+  },
+  "smart_meter.hot_water": {
+    "name": "Счетчик горячей воды",
+    "group": "Meters",
+    "kind": "smart_meter.hot_water",
+    "on": "smart_meter.hot_water-on.png",
+    "off": "smart_meter.hot_water-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-smart_meter-hot_water",
+    "recommended": {
+      "devices.properties.float": [
+        "water_meter",
+        "unit.cubic_meter"
+      ]
+    }
+  },
+  "socket": {
+    "name": "Умная розетка",
+    "group": "Power",
+    "kind": "cz",
+    "on": "socket-on.png",
+    "off": "socket-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-socket",
+    "recommended": {
+      "devices.capabilities.color_setting": [],
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.toggle": [
+        "backlight"
+      ],
+      "devices.properties.float": [
+        "amperage",
+        "power",
+        "voltage"
+      ]
+    }
+  },
+  "switch": {
+    "name": "Настенный выключатель света",
+    "group": "Power",
+    "kind": "kg",
+    "on": "switch-on.png",
+    "off": "switch-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-switch",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.toggle": [
+        "backlight"
+      ],
+      "devices.properties.float": [
+        "amperage",
+        "power",
+        "voltage"
+      ]
+    }
+  },
+  "switch.relay": {
+    "name": "Автомат в электрическом щитке",
+    "group": "Power",
+    "kind": "kg",
+    "on": "switch.relay-on.png",
+    "off": "switch.relay-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-switch-relay",
+    "recommended": {
+      "devices.capabilities.on_off": []
+    }
+  },
+  "thermostat": {
+    "name": "Водонагреватель",
+    "group": "Climate",
+    "kind": "wk",
+    "on": "thermostat-on.png",
+    "off": "thermostat-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-thermostat",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "temperature"
+      ],
+      "devices.capabilities.mode": [
+        "fan_speed",
+        "auto",
+        "high",
+        "low",
+        "medium",
+        "quiet",
+        "turbo",
+        "thermostat",
+        "cool",
+        "dry",
+        "fan_only",
+        "heat",
+        "max",
+        "min",
+        "normal"
+      ],
+      "devices.capabilities.toggle": [
+        "oscillation"
+      ],
+      "devices.properties.float": [
+        "pressure",
+        "temperature"
+      ]
+    }
+  },
+  "thermostat.ac": {
+    "name": "Кондиционер",
+    "group": "Climate",
+    "kind": "wk",
+    "on": "thermostat.ac-on.png",
+    "off": "thermostat.ac-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-thermostat-ac",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "temperature"
+      ],
+      "devices.capabilities.mode": [
+        "fan_speed",
+        "auto",
+        "high",
+        "low",
+        "medium",
+        "quiet",
+        "turbo",
+        "swing",
+        "horizontal",
+        "stationary",
+        "vertical",
+        "thermostat",
+        "cool",
+        "dry",
+        "eco",
+        "fan_only",
+        "heat"
+      ],
+      "devices.capabilities.toggle": [
+        "ionization",
+        "oscillation"
+      ],
+      "devices.properties.float": [
+        "temperature"
+      ]
+    }
+  },
+  "vacuum_cleaner": {
+    "name": "Робот-пылесос",
+    "group": "Appliances",
+    "kind": "sd",
+    "on": "vacuum_cleaner-on.png",
+    "off": "vacuum_cleaner-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-vacuum-cleaner",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "cleanup_mode",
+        "auto",
+        "eco",
+        "express",
+        "normal",
+        "quiet",
+        "wet_cleaning",
+        "dry_cleaning",
+        "mixed_cleaning",
+        "work_speed",
+        "fast",
+        "medium",
+        "slow",
+        "turbo"
+      ],
+      "devices.capabilities.toggle": [
+        "pause"
+      ],
+      "devices.properties.float": [
+        "water_level",
+        "battery_level"
+      ],
+      "devices.properties.event": [
+        "water_level",
+        "battery_level"
+      ]
+    }
+  },
+  "ventilation": {
+    "name": "Бризер",
+    "group": "Climate",
+    "kind": "fs",
+    "on": "ventilation-on.png",
+    "off": "ventilation-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-ventilation",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.range": [
+        "temperature"
+      ],
+      "devices.capabilities.mode": [
+        "fan_speed",
+        "auto",
+        "high",
+        "low",
+        "medium",
+        "quiet",
+        "turbo",
+        "ventilation_mode",
+        "supply_air",
+        "extraction_air",
+        "thermostat",
+        "fan_only",
+        "heat"
+      ],
+      "devices.properties.float": [
+        "temperature",
+        "co2_level",
+        "humidity",
+        "tvoc",
+        "pm1_density",
+        "pm2.5_density",
+        "pm10_density"
+      ]
+    }
+  },
+  "ventilation.fan": {
+    "name": "Вентилятор",
+    "group": "Climate",
+    "kind": "fs",
+    "on": "ventilation.fan-on.png",
+    "off": "ventilation.fan-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-ventilation-fan",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.mode": [
+        "fan_speed",
+        "low",
+        "medium",
+        "high",
+        "turbo"
+      ],
+      "devices.capabilities.toggle": [
+        "oscillation"
+      ]
+    }
+  },
+  "washing_machine": {
+    "name": "Стиральная машина",
+    "group": "Appliances",
+    "kind": "washing_machine",
+    "on": "washing_machine-on.png",
+    "off": "washing_machine-off.png",
+    "source": "https://yandex.ru/dev/dialogs/smart-home/doc/ru/concepts/device-type-washing-machine",
+    "recommended": {
+      "devices.capabilities.on_off": [],
+      "devices.capabilities.toggle": [
+        "pause",
+        "controls_locked"
+      ],
+      "devices.capabilities.mode": [
+        "program",
+        "one",
+        "two",
+        "three",
+        "four",
+        "five",
+        "six",
+        "seven",
+        "eight",
+        "nine",
+        "ten",
+        "express"
+      ]
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "$defs": {
+    "RoomView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "device_count": {
+          "minimum": 0,
+          "title": "Device Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "device_count"
+      ],
+      "title": "RoomView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "rooms": {
+      "items": {
+        "$ref": "#/$defs/RoomView"
+      },
+      "title": "Rooms",
+      "type": "array"
+    }
+  },
+  "required": [
+    "rooms"
+  ],
+  "title": "RoomsResponse",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

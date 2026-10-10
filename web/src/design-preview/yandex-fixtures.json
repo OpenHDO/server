@@ -1,0 +1,3995 @@
+[
+  {
+    "group": "Media",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-camera",
+      "name": "Видеокамера",
+      "kind": "sp",
+      "device_type": "camera",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "video_stream",
+          "name": "Get stream",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.video_stream",
+            "yandex_instance": "get_stream",
+            "retrievable": false,
+            "range": [
+              "hls"
+            ]
+          }
+        }
+      ],
+      "state": {
+        "switch": true
+      },
+      "status_specs": {},
+      "product_name": "camera",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-camera",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Kitchen",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-cooking",
+      "name": "Холодильник",
+      "kind": "cooking",
+      "device_type": "cooking",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_program",
+          "name": "Program",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "program",
+            "retrievable": true,
+            "range": [
+              "one",
+              "two",
+              "three",
+              "four",
+              "five",
+              "six",
+              "seven",
+              "eight",
+              "nine",
+              "ten",
+              "express",
+              "normal"
+            ]
+          }
+        },
+        {
+          "code": "temp_set",
+          "name": "Temperature",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "temperature",
+            "retrievable": true,
+            "min": 40,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "°C"
+          }
+        },
+        {
+          "code": "toggle_controls_locked",
+          "name": "Controls locked",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "controls_locked",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_keep_warm",
+          "name": "Keep warm",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "keep_warm",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_pause",
+          "name": "Pause",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "pause",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_program": "one",
+        "temp_set": 70,
+        "toggle_controls_locked": false,
+        "toggle_keep_warm": false,
+        "toggle_pause": false,
+        "temp_current": 23.5
+      },
+      "status_specs": {
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        }
+      },
+      "product_name": "cooking",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-cooking",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Kitchen",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-cooking.coffee_maker",
+      "name": "Кофеварка",
+      "kind": "cooking.coffee_maker",
+      "device_type": "cooking.coffee_maker",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_coffee_mode",
+          "name": "Coffee mode",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "coffee_mode",
+            "retrievable": true,
+            "range": [
+              "americano",
+              "cappuccino",
+              "double_espresso",
+              "espresso",
+              "latte"
+            ]
+          }
+        },
+        {
+          "code": "mode_program",
+          "name": "Program",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "program",
+            "retrievable": true,
+            "range": [
+              "one",
+              "two",
+              "three",
+              "four",
+              "five",
+              "six",
+              "seven",
+              "eight",
+              "nine",
+              "ten"
+            ]
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_coffee_mode": "americano",
+        "mode_program": "one",
+        "property_water_level": 60,
+        "property_event_water_level": "normal"
+      },
+      "status_specs": {
+        "property_water_level": {
+          "unit": "%",
+          "scale": 0
+        },
+        "property_event_water_level": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "cooking.coffee_maker",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-cooking.coffee_maker",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Kitchen",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-cooking.grill.aero",
+      "name": "Аэрогриль",
+      "kind": "cooking.grill.aero",
+      "device_type": "cooking.grill.aero",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {},
+      "status_specs": {},
+      "product_name": "cooking.grill.aero",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-cooking.grill.aero",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Kitchen",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-cooking.kettle",
+      "name": "Умный чайник",
+      "kind": "cooking.kettle",
+      "device_type": "cooking.kettle",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_tea_mode",
+          "name": "Tea mode",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "tea_mode",
+            "retrievable": true,
+            "range": [
+              "black_tea",
+              "flower_tea",
+              "green_tea",
+              "herbal_tea",
+              "oolong_tea",
+              "puerh_tea",
+              "red_tea",
+              "white_tea"
+            ]
+          }
+        },
+        {
+          "code": "temp_set",
+          "name": "Temperature",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "temperature",
+            "retrievable": true,
+            "min": 40,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "°C"
+          }
+        },
+        {
+          "code": "toggle_backlight",
+          "name": "Backlight",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "backlight",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_controls_locked",
+          "name": "Controls locked",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "controls_locked",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_keep_warm",
+          "name": "Keep warm",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "keep_warm",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "switch": true,
+        "mode_tea_mode": "black_tea",
+        "temp_set": 70,
+        "toggle_backlight": false,
+        "toggle_controls_locked": false,
+        "toggle_keep_warm": false,
+        "temp_current": 23.5,
+        "property_water_level": 60,
+        "property_event_water_level": "normal"
+      },
+      "status_specs": {
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        },
+        "property_water_level": {
+          "unit": "%",
+          "scale": 0
+        },
+        "property_event_water_level": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "cooking.kettle",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-cooking.kettle",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Kitchen",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-cooking.multicooker",
+      "name": "Мультиварка",
+      "kind": "cooking.multicooker",
+      "device_type": "cooking.multicooker",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_controls_locked",
+          "name": "Controls locked",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "controls_locked",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_keep_warm",
+          "name": "Keep warm",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "keep_warm",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_set",
+          "name": "Temperature",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "temperature",
+            "retrievable": true,
+            "min": 40,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "°C"
+          }
+        },
+        {
+          "code": "mode_program",
+          "name": "Program",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "program",
+            "retrievable": true,
+            "range": [
+              "vacuum",
+              "boiling",
+              "baking",
+              "dessert",
+              "baby_food",
+              "fowl",
+              "frying",
+              "yogurt",
+              "cereals",
+              "macaroni",
+              "milk_porridge",
+              "multicooker",
+              "steam",
+              "pasta",
+              "pizza",
+              "pilaf",
+              "sauce",
+              "soup",
+              "stewing",
+              "slow_cook",
+              "deep_fryer",
+              "bread",
+              "aspic",
+              "cheesecake",
+              "preheat"
+            ]
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "toggle_controls_locked": false,
+        "toggle_keep_warm": false,
+        "temp_set": 70,
+        "mode_program": "vacuum"
+      },
+      "status_specs": {},
+      "product_name": "cooking.multicooker",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-cooking.multicooker",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Appliances",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-dishwasher",
+      "name": "Посудомоечная машина",
+      "kind": "dishwasher",
+      "device_type": "dishwasher",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_controls_locked",
+          "name": "Controls locked",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "controls_locked",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_dishwashing",
+          "name": "Dishwashing",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "dishwashing",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "eco",
+              "quiet",
+              "express",
+              "glass",
+              "intensive",
+              "pre_rinse"
+            ]
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "toggle_controls_locked": false,
+        "mode_dishwashing": "auto"
+      },
+      "status_specs": {},
+      "product_name": "dishwasher",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-dishwasher",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Climate",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-humidifier",
+      "name": "Увлажнитель воздуха",
+      "kind": "jsq",
+      "device_type": "humidifier",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_fan_speed",
+          "name": "Fan speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "fan_speed",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "high",
+              "low",
+              "medium",
+              "quiet",
+              "turbo"
+            ]
+          }
+        },
+        {
+          "code": "humidity_set",
+          "name": "Humidity",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "humidity",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%"
+          }
+        },
+        {
+          "code": "toggle_ionization",
+          "name": "Ionization",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "ionization",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_fan_speed": "auto",
+        "humidity_set": 50,
+        "toggle_ionization": false,
+        "humidity_value": 45,
+        "temp_current": 23.5,
+        "property_water_level": 60,
+        "property_event_water_level": "normal"
+      },
+      "status_specs": {
+        "humidity_value": {
+          "unit": "%",
+          "scale": 0
+        },
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        },
+        "property_water_level": {
+          "unit": "%",
+          "scale": 0
+        },
+        "property_event_water_level": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "humidifier",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-humidifier",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Appliances",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-iron",
+      "name": "Утюг",
+      "kind": "iron",
+      "device_type": "iron",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_set",
+          "name": "Temperature",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "temperature",
+            "retrievable": true,
+            "min": 16,
+            "max": 30,
+            "step": 1,
+            "scale": 0,
+            "unit": "°C"
+          }
+        },
+        {
+          "code": "mode_program",
+          "name": "Program",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "program",
+            "retrievable": true,
+            "range": [
+              "turbo",
+              "eco",
+              "steam",
+              "auto",
+              "one",
+              "two"
+            ]
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "temp_set": 23,
+        "mode_program": "turbo"
+      },
+      "status_specs": {},
+      "product_name": "iron",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-iron",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light",
+      "name": "Лампочка",
+      "kind": "dj",
+      "device_type": "light",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        },
+        {
+          "code": "toggle_backlight",
+          "name": "Backlight",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "backlight",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "switch_led": true,
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "bright_value": 50,
+        "toggle_backlight": false
+      },
+      "status_specs": {},
+      "product_name": "light",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-light",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light.ceiling",
+      "name": "Люстра",
+      "kind": "dj",
+      "device_type": "light.ceiling",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        },
+        {
+          "code": "toggle_backlight",
+          "name": "Backlight",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "backlight",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "switch_led": true,
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "bright_value": 50,
+        "toggle_backlight": false
+      },
+      "status_specs": {},
+      "product_name": "light.ceiling",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-light.ceiling",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light.dimmable",
+      "name": "Умный диммер",
+      "kind": "dj",
+      "device_type": "light.dimmable",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        }
+      ],
+      "state": {
+        "switch_led": true,
+        "bright_value": 50
+      },
+      "status_specs": {},
+      "product_name": "light.dimmable",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-light.dimmable",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light.garland",
+      "name": "Гирлянда",
+      "kind": "dj",
+      "device_type": "light.garland",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "switch_led": true,
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "bright_value": 50
+      },
+      "status_specs": {},
+      "product_name": "light.garland",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": "garland",
+      "id": "preview-yandex-light.garland",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light.lamp",
+      "name": "Настольная лампа",
+      "kind": "dj",
+      "device_type": "light.lamp",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        },
+        {
+          "code": "toggle_backlight",
+          "name": "Backlight",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "backlight",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "switch_led": true,
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "bright_value": 50,
+        "toggle_backlight": false
+      },
+      "status_specs": {},
+      "product_name": "light.lamp",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-light.lamp",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light.sconce",
+      "name": "Бра",
+      "kind": "dj",
+      "device_type": "light.sconce",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "switch_led": true,
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "bright_value": 50
+      },
+      "status_specs": {},
+      "product_name": "light.sconce",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-light.sconce",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light.strip",
+      "name": "Диодная лента",
+      "kind": "dj",
+      "device_type": "light.strip",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "switch_led": true,
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "bright_value": 50
+      },
+      "status_specs": {},
+      "product_name": "light.strip",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-light.strip",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Lighting",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-light.torchere",
+      "name": "Торшер",
+      "kind": "dj",
+      "device_type": "light.torchere",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch_led",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "bright_value",
+          "name": "Brightness",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "brightness",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%",
+            "step_origin": 0
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "switch_led": true,
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "bright_value": 50
+      },
+      "status_specs": {},
+      "product_name": "light.torchere",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-light.torchere",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Media",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-media_device",
+      "name": "DVD-плеер и другие медиаустройства",
+      "kind": "media_device",
+      "device_type": "media_device",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_input_source",
+          "name": "Input source",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "input_source",
+            "retrievable": true,
+            "range": [
+              "one",
+              "two",
+              "three",
+              "four",
+              "five",
+              "six",
+              "seven",
+              "eight",
+              "nine",
+              "ten"
+            ]
+          }
+        },
+        {
+          "code": "range_channel",
+          "name": "Channel",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "channel",
+            "retrievable": true,
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": ""
+          }
+        },
+        {
+          "code": "range_volume",
+          "name": "Volume",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "volume",
+            "retrievable": true,
+            "min": -1,
+            "max": 1,
+            "step": 1,
+            "scale": 0,
+            "unit": "",
+            "relative": true,
+            "step_origin": 0,
+            "unbounded": true
+          }
+        },
+        {
+          "code": "toggle_mute",
+          "name": "Mute",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "mute",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_pause",
+          "name": "Pause",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "pause",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_input_source": "one",
+        "range_channel": 50,
+        "toggle_mute": false,
+        "toggle_pause": false
+      },
+      "status_specs": {},
+      "product_name": "media_device",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-media_device",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Media",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-media_device.receiver",
+      "name": "Спутниковый ресивер",
+      "kind": "media_device.receiver",
+      "device_type": "media_device.receiver",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "range_channel",
+          "name": "Channel",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "channel",
+            "retrievable": true,
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": ""
+          }
+        },
+        {
+          "code": "range_volume",
+          "name": "Volume",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "volume",
+            "retrievable": true,
+            "min": -1,
+            "max": 1,
+            "step": 1,
+            "scale": 0,
+            "unit": "",
+            "relative": true,
+            "step_origin": 0,
+            "unbounded": true
+          }
+        },
+        {
+          "code": "mode_input_source",
+          "name": "Input source",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "input_source",
+            "retrievable": true,
+            "range": [
+              "one",
+              "two",
+              "three",
+              "four",
+              "five",
+              "six",
+              "seven",
+              "eight",
+              "nine",
+              "ten"
+            ]
+          }
+        },
+        {
+          "code": "toggle_mute",
+          "name": "Mute",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "mute",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_pause",
+          "name": "Pause",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "pause",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "range_channel": 50,
+        "mode_input_source": "one",
+        "toggle_mute": false,
+        "toggle_pause": false
+      },
+      "status_specs": {},
+      "product_name": "media_device.receiver",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-media_device.receiver",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Media",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-media_device.tv",
+      "name": "Умный телевизор",
+      "kind": "media_device.tv",
+      "device_type": "media_device.tv",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_input_source",
+          "name": "Input source",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "input_source",
+            "retrievable": true,
+            "range": [
+              "one",
+              "two",
+              "three",
+              "four",
+              "five",
+              "six",
+              "seven",
+              "eight",
+              "nine",
+              "ten"
+            ]
+          }
+        },
+        {
+          "code": "range_channel",
+          "name": "Channel",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "channel",
+            "retrievable": true,
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": ""
+          }
+        },
+        {
+          "code": "range_volume",
+          "name": "Volume",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "volume",
+            "retrievable": true,
+            "min": -1,
+            "max": 1,
+            "step": 1,
+            "scale": 0,
+            "unit": "",
+            "relative": true,
+            "step_origin": 0,
+            "unbounded": true
+          }
+        },
+        {
+          "code": "toggle_backlight",
+          "name": "Backlight",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "backlight",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_controls_locked",
+          "name": "Controls locked",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "controls_locked",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_mute",
+          "name": "Mute",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "mute",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_pause",
+          "name": "Pause",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "pause",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_input_source": "one",
+        "range_channel": 50,
+        "toggle_backlight": false,
+        "toggle_controls_locked": false,
+        "toggle_mute": false,
+        "toggle_pause": false
+      },
+      "status_specs": {},
+      "product_name": "media_device.tv",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-media_device.tv",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Media",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-media_device.tv_box",
+      "name": "Умная ТВ-приставка",
+      "kind": "media_device.tv_box",
+      "device_type": "media_device.tv_box",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "range_channel",
+          "name": "Channel",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "channel",
+            "retrievable": true,
+            "min": 1,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": ""
+          }
+        },
+        {
+          "code": "range_volume",
+          "name": "Volume",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "volume",
+            "retrievable": true,
+            "min": -1,
+            "max": 1,
+            "step": 1,
+            "scale": 0,
+            "unit": "",
+            "relative": true,
+            "step_origin": 0,
+            "unbounded": true
+          }
+        },
+        {
+          "code": "toggle_mute",
+          "name": "Mute",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "mute",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_pause",
+          "name": "Pause",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "pause",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "range_channel": 50,
+        "toggle_mute": false,
+        "toggle_pause": false
+      },
+      "status_specs": {},
+      "product_name": "media_device.tv_box",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-media_device.tv_box",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Opening",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-openable",
+      "name": "Дверь",
+      "kind": "openable",
+      "device_type": "openable",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_work_speed",
+          "name": "Work speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "work_speed",
+            "retrievable": true,
+            "range": [
+              "fast",
+              "medium",
+              "slow"
+            ]
+          }
+        },
+        {
+          "code": "percent_control",
+          "name": "Open",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "open",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%"
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_work_speed": "fast",
+        "percent_control": 50,
+        "doorcontact_state": false
+      },
+      "status_specs": {
+        "doorcontact_state": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "openable",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-openable",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Opening",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-openable.curtain",
+      "name": "Шторы",
+      "kind": "cl",
+      "device_type": "openable.curtain",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_work_speed",
+          "name": "Work speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "work_speed",
+            "retrievable": true,
+            "range": [
+              "fast",
+              "medium",
+              "slow"
+            ]
+          }
+        },
+        {
+          "code": "percent_control",
+          "name": "Open",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "open",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%"
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_work_speed": "fast",
+        "percent_control": 50,
+        "doorcontact_state": false
+      },
+      "status_specs": {
+        "doorcontact_state": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "openable.curtain",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-openable.curtain",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Opening",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-openable.door_lock",
+      "name": "Замки",
+      "kind": "openable.door_lock",
+      "device_type": "openable.door_lock",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {},
+      "status_specs": {},
+      "product_name": "openable.door_lock",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-openable.door_lock",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Opening",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-openable.valve",
+      "name": "Шаровой кран",
+      "kind": "openable.valve",
+      "device_type": "openable.valve",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "percent_control",
+          "name": "Open",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "open",
+            "retrievable": true,
+            "min": 0,
+            "max": 100,
+            "step": 1,
+            "scale": 0,
+            "unit": "%"
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "percent_control": 50
+      },
+      "status_specs": {},
+      "product_name": "openable.valve",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-openable.valve",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Appliances",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-other",
+      "name": "Остальные устройства",
+      "kind": "other",
+      "device_type": "other",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {},
+      "status_specs": {},
+      "product_name": "other",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-other",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Pet devices",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-pet_drinking_fountain",
+      "name": "Поилка",
+      "kind": "pet_drinking_fountain",
+      "device_type": "pet_drinking_fountain",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "property_event_water_level": "normal",
+        "property_water_level": 60
+      },
+      "status_specs": {
+        "property_event_water_level": {
+          "unit": "",
+          "scale": 0
+        },
+        "property_water_level": {
+          "unit": "%",
+          "scale": 0
+        }
+      },
+      "product_name": "pet_drinking_fountain",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-pet_drinking_fountain",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Pet devices",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-pet_feeder",
+      "name": "Кормушка",
+      "kind": "pet_feeder",
+      "device_type": "pet_feeder",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "property_event_food_level": "normal",
+        "property_food_level": 60
+      },
+      "status_specs": {
+        "property_event_food_level": {
+          "unit": "",
+          "scale": 0
+        },
+        "property_food_level": {
+          "unit": "%",
+          "scale": 0
+        }
+      },
+      "product_name": "pet_feeder",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-pet_feeder",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Climate",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-purifier",
+      "name": "Очиститель воздуха",
+      "kind": "purifier",
+      "device_type": "purifier",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_fan_speed",
+          "name": "Fan speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "fan_speed",
+            "retrievable": true,
+            "range": [
+              "quiet",
+              "turbo",
+              "auto",
+              "high",
+              "low",
+              "medium"
+            ]
+          }
+        },
+        {
+          "code": "toggle_ionization",
+          "name": "Ionization",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "ionization",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_fan_speed": "quiet",
+        "toggle_ionization": false,
+        "temp_current": 23.5
+      },
+      "status_specs": {
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        }
+      },
+      "product_name": "purifier",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-purifier",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor",
+      "name": "Датчик движения",
+      "kind": "wsdcg",
+      "device_type": "sensor",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_event_battery_level": "normal",
+        "button": "click",
+        "gas_sensor_state": "normal",
+        "pir": "none",
+        "doorcontact_state": false,
+        "smoke_sensor_state": "normal",
+        "vibration": "tilt",
+        "property_event_water_level": "normal",
+        "watersensor_state": "normal",
+        "battery_percentage": 87,
+        "property_co2_level": 650,
+        "humidity_value": 45,
+        "property_illumination": 420,
+        "property_pm1_density": 60,
+        "property_pm2.5_density": 60,
+        "property_pm10_density": 60,
+        "property_pressure": 101325,
+        "temp_current": 23.5,
+        "property_tvoc": 60,
+        "property_water_level": 60
+      },
+      "status_specs": {
+        "property_event_battery_level": {
+          "unit": "",
+          "scale": 0
+        },
+        "button": {
+          "unit": "",
+          "scale": 0
+        },
+        "gas_sensor_state": {
+          "unit": "",
+          "scale": 0
+        },
+        "pir": {
+          "unit": "",
+          "scale": 0
+        },
+        "doorcontact_state": {
+          "unit": "",
+          "scale": 0
+        },
+        "smoke_sensor_state": {
+          "unit": "",
+          "scale": 0
+        },
+        "vibration": {
+          "unit": "",
+          "scale": 0
+        },
+        "property_event_water_level": {
+          "unit": "",
+          "scale": 0
+        },
+        "watersensor_state": {
+          "unit": "",
+          "scale": 0
+        },
+        "battery_percentage": {
+          "unit": "%",
+          "scale": 0
+        },
+        "property_co2_level": {
+          "unit": "ppm",
+          "scale": 0
+        },
+        "humidity_value": {
+          "unit": "%",
+          "scale": 0
+        },
+        "property_illumination": {
+          "unit": "lx",
+          "scale": 0
+        },
+        "property_pm1_density": {
+          "unit": "µg/m³",
+          "scale": 0
+        },
+        "property_pm2.5_density": {
+          "unit": "µg/m³",
+          "scale": 0
+        },
+        "property_pm10_density": {
+          "unit": "µg/m³",
+          "scale": 0
+        },
+        "property_pressure": {
+          "unit": "Pa",
+          "scale": 0
+        },
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        },
+        "property_tvoc": {
+          "unit": "ppm",
+          "scale": 0
+        },
+        "property_water_level": {
+          "unit": "%",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.button",
+      "name": "Умная кнопка",
+      "kind": "wsdcg",
+      "device_type": "sensor.button",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "button": "click"
+      },
+      "status_specs": {
+        "button": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.button",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.button",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.climate",
+      "name": "Датчик климата",
+      "kind": "wsdcg",
+      "device_type": "sensor.climate",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "temp_current": 23.5,
+        "humidity_value": 45
+      },
+      "status_specs": {
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        },
+        "humidity_value": {
+          "unit": "%",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.climate",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.climate",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.gas",
+      "name": "Датчик газа",
+      "kind": "rqbj",
+      "device_type": "sensor.gas",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "gas_sensor_state": "normal"
+      },
+      "status_specs": {
+        "gas_sensor_state": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.gas",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.gas",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.illumination",
+      "name": "Датчик освещенности",
+      "kind": "wsdcg",
+      "device_type": "sensor.illumination",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_illumination": 420
+      },
+      "status_specs": {
+        "property_illumination": {
+          "unit": "lx",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.illumination",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.illumination",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.motion",
+      "name": "Датчик движения",
+      "kind": "pir",
+      "device_type": "sensor.motion",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "pir": "none"
+      },
+      "status_specs": {
+        "pir": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.motion",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.motion",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.open",
+      "name": "Датчик открытия двери",
+      "kind": "mcs",
+      "device_type": "sensor.open",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "doorcontact_state": false
+      },
+      "status_specs": {
+        "doorcontact_state": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.open",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.open",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.smoke",
+      "name": "Датчик дыма",
+      "kind": "ywbj",
+      "device_type": "sensor.smoke",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "smoke_sensor_state": "normal"
+      },
+      "status_specs": {
+        "smoke_sensor_state": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.smoke",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.smoke",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.vibration",
+      "name": "Датчик вибрации",
+      "kind": "wsdcg",
+      "device_type": "sensor.vibration",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "vibration": "tilt"
+      },
+      "status_specs": {
+        "vibration": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.vibration",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.vibration",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Sensors",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-sensor.water_leak",
+      "name": "Датчик протечки воды",
+      "kind": "sj",
+      "device_type": "sensor.water_leak",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "watersensor_state": "normal"
+      },
+      "status_specs": {
+        "watersensor_state": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "sensor.water_leak",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-sensor.water_leak",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Meters",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-smart_meter",
+      "name": "Счетчик",
+      "kind": "smart_meter",
+      "device_type": "smart_meter",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_meter": 60
+      },
+      "status_specs": {
+        "property_meter": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "smart_meter",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-smart_meter",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Meters",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-smart_meter.cold_water",
+      "name": "Счетчик холодной воды",
+      "kind": "smart_meter.cold_water",
+      "device_type": "smart_meter.cold_water",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_water_meter": 23.6
+      },
+      "status_specs": {
+        "property_water_meter": {
+          "unit": "m³",
+          "scale": 0
+        }
+      },
+      "product_name": "smart_meter.cold_water",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-smart_meter.cold_water",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Meters",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-smart_meter.electricity",
+      "name": "Счетчик электроэнергии",
+      "kind": "smart_meter.electricity",
+      "device_type": "smart_meter.electricity",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_electricity_meter": 1234.5
+      },
+      "status_specs": {
+        "property_electricity_meter": {
+          "unit": "kWh",
+          "scale": 0
+        }
+      },
+      "product_name": "smart_meter.electricity",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-smart_meter.electricity",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Meters",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-smart_meter.gas",
+      "name": "Счетчик газа",
+      "kind": "smart_meter.gas",
+      "device_type": "smart_meter.gas",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_gas_meter": 54.2
+      },
+      "status_specs": {
+        "property_gas_meter": {
+          "unit": "m³",
+          "scale": 0
+        }
+      },
+      "product_name": "smart_meter.gas",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-smart_meter.gas",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Meters",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-smart_meter.heat",
+      "name": "Счетчик тепла",
+      "kind": "smart_meter.heat",
+      "device_type": "smart_meter.heat",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_heat_meter": 60
+      },
+      "status_specs": {
+        "property_heat_meter": {
+          "unit": "Gcal",
+          "scale": 0
+        }
+      },
+      "product_name": "smart_meter.heat",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-smart_meter.heat",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Meters",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-smart_meter.hot_water",
+      "name": "Счетчик горячей воды",
+      "kind": "smart_meter.hot_water",
+      "device_type": "smart_meter.hot_water",
+      "available": true,
+      "state_stale": false,
+      "controls": [],
+      "state": {
+        "property_water_meter": 23.6
+      },
+      "status_specs": {
+        "property_water_meter": {
+          "unit": "m³",
+          "scale": 0
+        }
+      },
+      "product_name": "smart_meter.hot_water",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-smart_meter.hot_water",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Power",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-socket",
+      "name": "Умная розетка",
+      "kind": "cz",
+      "device_type": "socket",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "colour_data_v2",
+          "name": "Hsv",
+          "type": "Json",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "hsv",
+            "retrievable": true,
+            "h": {
+              "min": 0,
+              "max": 360
+            },
+            "s": {
+              "min": 0,
+              "max": 100
+            },
+            "v": {
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_backlight",
+          "name": "Backlight",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "backlight",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_value",
+          "name": "Temperature k",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.color_setting",
+            "yandex_instance": "temperature_k",
+            "retrievable": true,
+            "min": 2700,
+            "max": 6500,
+            "step": 1,
+            "unit": "K",
+            "scale": 0
+          }
+        }
+      ],
+      "state": {
+        "work_mode": "colour",
+        "colour_data_v2": {
+          "h": 210,
+          "s": 70,
+          "v": 65
+        },
+        "switch": true,
+        "toggle_backlight": false,
+        "cur_current": 0.54,
+        "cur_power": 125,
+        "cur_voltage": 230
+      },
+      "status_specs": {
+        "cur_current": {
+          "unit": "A",
+          "scale": 0
+        },
+        "cur_power": {
+          "unit": "W",
+          "scale": 0
+        },
+        "cur_voltage": {
+          "unit": "V",
+          "scale": 0
+        }
+      },
+      "product_name": "socket",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-socket",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Power",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-switch",
+      "name": "Настенный выключатель света",
+      "kind": "kg",
+      "device_type": "switch",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_backlight",
+          "name": "Backlight",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "backlight",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "toggle_backlight": false,
+        "cur_current": 0.54,
+        "cur_power": 125,
+        "cur_voltage": 230
+      },
+      "status_specs": {
+        "cur_current": {
+          "unit": "A",
+          "scale": 0
+        },
+        "cur_power": {
+          "unit": "W",
+          "scale": 0
+        },
+        "cur_voltage": {
+          "unit": "V",
+          "scale": 0
+        }
+      },
+      "product_name": "switch",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-switch",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Power",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-switch.relay",
+      "name": "Автомат в электрическом щитке",
+      "kind": "kg",
+      "device_type": "switch.relay",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true
+      },
+      "status_specs": {},
+      "product_name": "switch.relay",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-switch.relay",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Climate",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-thermostat",
+      "name": "Водонагреватель",
+      "kind": "wk",
+      "device_type": "thermostat",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_set",
+          "name": "Temperature",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "temperature",
+            "retrievable": true,
+            "min": 16,
+            "max": 30,
+            "step": 1,
+            "scale": 0,
+            "unit": "°C"
+          }
+        },
+        {
+          "code": "mode_fan_speed",
+          "name": "Fan speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "fan_speed",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "high",
+              "low",
+              "medium",
+              "quiet",
+              "turbo"
+            ]
+          }
+        },
+        {
+          "code": "mode_thermostat",
+          "name": "Thermostat",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "thermostat",
+            "retrievable": true,
+            "range": [
+              "cool",
+              "dry",
+              "fan_only"
+            ]
+          }
+        },
+        {
+          "code": "mode_heat",
+          "name": "Heat",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "heat",
+            "retrievable": true,
+            "range": [
+              "max",
+              "min",
+              "normal"
+            ]
+          }
+        },
+        {
+          "code": "toggle_oscillation",
+          "name": "Oscillation",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "oscillation",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "temp_set": 23,
+        "mode_fan_speed": "auto",
+        "mode_thermostat": "cool",
+        "mode_heat": "max",
+        "toggle_oscillation": false,
+        "property_pressure": 101325,
+        "temp_current": 23.5
+      },
+      "status_specs": {
+        "property_pressure": {
+          "unit": "Pa",
+          "scale": 0
+        },
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        }
+      },
+      "product_name": "thermostat",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-thermostat",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Climate",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-thermostat.ac",
+      "name": "Кондиционер",
+      "kind": "wk",
+      "device_type": "thermostat.ac",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_set",
+          "name": "Temperature",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "temperature",
+            "retrievable": true,
+            "min": 16,
+            "max": 30,
+            "step": 1,
+            "scale": 0,
+            "unit": "°C"
+          }
+        },
+        {
+          "code": "mode_fan_speed",
+          "name": "Fan speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "fan_speed",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "high",
+              "low",
+              "medium",
+              "quiet",
+              "turbo"
+            ]
+          }
+        },
+        {
+          "code": "mode_swing",
+          "name": "Swing",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "swing",
+            "retrievable": true,
+            "range": [
+              "horizontal",
+              "stationary",
+              "vertical"
+            ]
+          }
+        },
+        {
+          "code": "mode_thermostat",
+          "name": "Thermostat",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "thermostat",
+            "retrievable": true,
+            "range": [
+              "cool",
+              "dry",
+              "eco",
+              "fan_only"
+            ]
+          }
+        },
+        {
+          "code": "mode_heat",
+          "name": "Heat",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "heat",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "low",
+              "high"
+            ]
+          }
+        },
+        {
+          "code": "toggle_ionization",
+          "name": "Ionization",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "ionization",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_oscillation",
+          "name": "Oscillation",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "oscillation",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "temp_set": 23,
+        "mode_fan_speed": "auto",
+        "mode_swing": "horizontal",
+        "mode_thermostat": "cool",
+        "mode_heat": "auto",
+        "toggle_ionization": false,
+        "toggle_oscillation": false,
+        "temp_current": 23.5
+      },
+      "status_specs": {
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        }
+      },
+      "product_name": "thermostat.ac",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-thermostat.ac",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Appliances",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-vacuum_cleaner",
+      "name": "Робот-пылесос",
+      "kind": "sd",
+      "device_type": "vacuum_cleaner",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_cleanup_mode",
+          "name": "Cleanup mode",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "cleanup_mode",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "eco",
+              "express",
+              "normal",
+              "quiet",
+              "wet_cleaning",
+              "dry_cleaning",
+              "mixed_cleaning"
+            ]
+          }
+        },
+        {
+          "code": "mode_work_speed",
+          "name": "Work speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "work_speed",
+            "retrievable": true,
+            "range": [
+              "fast",
+              "medium",
+              "slow",
+              "turbo"
+            ]
+          }
+        },
+        {
+          "code": "toggle_pause",
+          "name": "Pause",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "pause",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_cleanup_mode": "auto",
+        "mode_work_speed": "fast",
+        "toggle_pause": false,
+        "property_water_level": 60,
+        "battery_percentage": 87,
+        "property_event_water_level": "normal",
+        "property_event_battery_level": "normal"
+      },
+      "status_specs": {
+        "property_water_level": {
+          "unit": "%",
+          "scale": 0
+        },
+        "battery_percentage": {
+          "unit": "%",
+          "scale": 0
+        },
+        "property_event_water_level": {
+          "unit": "",
+          "scale": 0
+        },
+        "property_event_battery_level": {
+          "unit": "",
+          "scale": 0
+        }
+      },
+      "product_name": "vacuum_cleaner",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-vacuum_cleaner",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Climate",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-ventilation",
+      "name": "Бризер",
+      "kind": "fs",
+      "device_type": "ventilation",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "temp_set",
+          "name": "Temperature",
+          "type": "Integer",
+          "constraints": {
+            "yandex_type": "devices.capabilities.range",
+            "yandex_instance": "temperature",
+            "retrievable": true,
+            "min": 16,
+            "max": 30,
+            "step": 1,
+            "scale": 0,
+            "unit": "°C"
+          }
+        },
+        {
+          "code": "mode_fan_speed",
+          "name": "Fan speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "fan_speed",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "high",
+              "low",
+              "medium",
+              "quiet",
+              "turbo"
+            ]
+          }
+        },
+        {
+          "code": "mode_ventilation_mode",
+          "name": "Ventilation mode",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "ventilation_mode",
+            "retrievable": true,
+            "range": [
+              "supply_air",
+              "extraction_air"
+            ]
+          }
+        },
+        {
+          "code": "mode_thermostat",
+          "name": "Thermostat",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "thermostat",
+            "retrievable": true,
+            "range": [
+              "fan_only"
+            ]
+          }
+        },
+        {
+          "code": "mode_heat",
+          "name": "Heat",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "heat",
+            "retrievable": true,
+            "range": [
+              "auto",
+              "low",
+              "high"
+            ]
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "temp_set": 23,
+        "mode_fan_speed": "auto",
+        "mode_ventilation_mode": "supply_air",
+        "mode_thermostat": "fan_only",
+        "mode_heat": "auto",
+        "temp_current": 23.5,
+        "property_co2_level": 650,
+        "humidity_value": 45,
+        "property_tvoc": 60,
+        "property_pm1_density": 60,
+        "property_pm2.5_density": 60,
+        "property_pm10_density": 60
+      },
+      "status_specs": {
+        "temp_current": {
+          "unit": "°C",
+          "scale": 0
+        },
+        "property_co2_level": {
+          "unit": "ppm",
+          "scale": 0
+        },
+        "humidity_value": {
+          "unit": "%",
+          "scale": 0
+        },
+        "property_tvoc": {
+          "unit": "ppm",
+          "scale": 0
+        },
+        "property_pm1_density": {
+          "unit": "µg/m³",
+          "scale": 0
+        },
+        "property_pm2.5_density": {
+          "unit": "µg/m³",
+          "scale": 0
+        },
+        "property_pm10_density": {
+          "unit": "µg/m³",
+          "scale": 0
+        }
+      },
+      "product_name": "ventilation",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-ventilation",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Climate",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-ventilation.fan",
+      "name": "Вентилятор",
+      "kind": "fs",
+      "device_type": "ventilation.fan",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_fan_speed",
+          "name": "Fan speed",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "fan_speed",
+            "retrievable": true,
+            "range": [
+              "low",
+              "medium",
+              "high",
+              "turbo"
+            ]
+          }
+        },
+        {
+          "code": "toggle_oscillation",
+          "name": "Oscillation",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "oscillation",
+            "retrievable": true
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "mode_fan_speed": "low",
+        "toggle_oscillation": false
+      },
+      "status_specs": {},
+      "product_name": "ventilation.fan",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-ventilation.fan",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  },
+  {
+    "group": "Appliances",
+    "previewState": "on",
+    "device": {
+      "external_id": "yandex-washing_machine",
+      "name": "Стиральная машина",
+      "kind": "washing_machine",
+      "device_type": "washing_machine",
+      "available": true,
+      "state_stale": false,
+      "controls": [
+        {
+          "code": "switch",
+          "name": "On",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.on_off",
+            "yandex_instance": "on",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_pause",
+          "name": "Pause",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "pause",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "toggle_controls_locked",
+          "name": "Controls locked",
+          "type": "Boolean",
+          "constraints": {
+            "yandex_type": "devices.capabilities.toggle",
+            "yandex_instance": "controls_locked",
+            "retrievable": true
+          }
+        },
+        {
+          "code": "mode_program",
+          "name": "Program",
+          "type": "Enum",
+          "constraints": {
+            "yandex_type": "devices.capabilities.mode",
+            "yandex_instance": "program",
+            "retrievable": true,
+            "range": [
+              "one",
+              "two",
+              "three",
+              "four",
+              "five",
+              "six",
+              "seven",
+              "eight",
+              "nine",
+              "ten",
+              "express"
+            ]
+          }
+        }
+      ],
+      "state": {
+        "switch": true,
+        "toggle_pause": false,
+        "toggle_controls_locked": false,
+        "mode_program": "one"
+      },
+      "status_specs": {},
+      "product_name": "washing_machine",
+      "updated_at": null,
+      "state_revision": 0,
+      "icon": null,
+      "id": "preview-yandex-washing_machine",
+      "integration_id": "design-preview",
+      "area": "",
+      "room_id": null,
+      "enabled": true,
+      "kind_override": null
+    }
+  }
+]

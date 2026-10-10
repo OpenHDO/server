@@ -10,63 +10,25 @@ import json
 import logging
 from pathlib import Path
 from typing import Literal
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
-from pydantic import TypeAdapter, ValidationError
 from starlette.exceptions import HTTPException
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from .config import ServerSettings, load_settings
-from .connections import LightEventHub, LinkerConnections
 from .auth import AuthConflict, AuthStore, UserRecord
 from .logging import configure_logging, log_event
-from .linkers import LinkerRegistry, LinkerRegistryConflict, LinkerRegistryNotFound
-from .linker_client import LinkerConnector, OutboundLinkerSocket
-from .models import (
-    AuthResponse,
-    AuthUser,
-    BrightnessCommandEnvelope,
-    CommandResultEnvelope,
-    DiscoveryCandidateEnvelope,
-    DiscoveryCompletedEnvelope,
-    DiscoverySessionResponse,
-    DiscoveryStartRequest,
-    PairingCompletedEnvelope,
-    PairingSessionResponse,
-    PairingStartRequest,
-    HealthResponse,
-    LightCommandEnvelope,
-    LightPatchRequest,
-    LightStateReportedEnvelope,
-    LightUpdatedEnvelope,
-    Identifier,
-    LinkerCreateRequest,
-    LinkerUpdateRequest,
-    LinkRegisterEnvelope,
-    LinkerEnvelope,
-    LinkerView,
-    LinkersResponse,
-    LightsResponse,
-    LoginRequest,
-    PowerCommandEnvelope,
-    ProblemResponse,
-    RegisterRequest,
-    RgbColorCommandEnvelope,
-    LightView,
-    Source,
-    UserUpdateRequest,
-    UsersResponse,
-    utc_now,
-)
-from .repository import InMemoryDiscoverySessionRepository, InMemoryLightRepository, InMemoryPairingSessionRepository
-from .service import DiscoveryService, LightService, PairingService, ServiceError
+from .models import AuthResponse, AuthUser, LoginRequest, ProblemResponse, RegisterRequest, UserUpdateRequest, UsersResponse, utc_now
+from .plugins import PluginManager, plugin_router
+from .service import ServiceError
+from .integrations import IntegrationManager, integration_router
+from .lights import lights_router, light_view
 
 
-_SOURCE_ADAPTER = TypeAdapter(Source)
 _SESSION_COOKIE = "openhdo_session"
 _CSRF_COOKIE = "openhdo_csrf"
 _SESSION_TTL_SECONDS = 8 * 60 * 60
@@ -102,13 +64,6 @@ def _authorization_value(headers) -> str | None:
     return value[7:]
 
 
-def _token_matches(headers, expected: str | None) -> bool:
-    if expected is None:
-        return True
-    provided = _authorization_value(headers)
-    return provided is not None and hmac.compare_digest(provided, expected)
-
-
 def _api_token_matches(headers, expected: str | None) -> bool:
     if expected is None:
         return False
@@ -126,37 +81,12 @@ def _origin_matches(
 def create_app(settings: ServerSettings | None = None) -> FastAPI:
     settings = settings or load_settings()
     logger = configure_logging(settings.log_level)
-    repository = InMemoryLightRepository(clock=utc_now)
-    discovery_repository = InMemoryDiscoverySessionRepository()
-    connections = LinkerConnections()
-    events = LightEventHub()
-    linker_registry = LinkerRegistry(Path(settings.data_dir) / "modules" / "connector" / "linkers.json")
-    for entry in linker_registry.list():
-        if entry.manifest is not None:
-            repository.register_linker(entry.manifest.id, entry.manifest)
+    integrations = IntegrationManager(Path(settings.data_dir) / "devices" / "integrations.sqlite3")
+    plugins = PluginManager(settings.data_dir, {"devices": integrations, "http": integrations.client})
+    integrations.plugin_providers = plugins.providers
+    integrations.plugin_events = plugins.emit
     auth_store = AuthStore(settings.auth_db_path)
     auth_store.ensure_bootstrap_admin(settings.admin_username, settings.admin_password)
-    service = LightService(
-        repository=repository,
-        transport=connections,
-        events=events,
-        instance_name=settings.instance_name,
-        logger=logger,
-    )
-    discovery_service = DiscoveryService(
-        repository=discovery_repository,
-        transport=connections,
-        instance_name=settings.instance_name,
-        logger=logger,
-    )
-    pairing_service = PairingService(
-        discovery_repository=discovery_repository,
-        repository=InMemoryPairingSessionRepository(),
-        transport=connections,
-        lights=service,
-        logger=logger,
-    )
-
     @asynccontextmanager
     async def lifespan(application: FastAPI):
         log_event(
@@ -165,14 +95,15 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             "server.startup",
             {"runtime": "python", "instance_name": settings.instance_name, "host": settings.host, "port": settings.port},
         )
-        connector_task = asyncio.create_task(outbound_connector.run())
+        await plugins.start()
+        connector_task = asyncio.create_task(integrations.run())
         try:
             yield
         finally:
             connector_task.cancel()
             await asyncio.gather(connector_task, return_exceptions=True)
-            await discovery_service.close()
-            await pairing_service.close()
+            await plugins.close()
+            await integrations.close()
             auth_store.close()
             log_event(logger, logging.INFO, "server.shutdown", {"instance_name": settings.instance_name})
 
@@ -182,16 +113,13 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             CORSMiddleware,
             allow_origins=list(settings.cors_origins),
             allow_credentials=False,
-            allow_methods=["GET", "PATCH", "POST", "DELETE"],
+            allow_methods=["GET", "PATCH", "POST", "PUT", "DELETE"],
             allow_headers=["Authorization", "Content-Type", "Accept", "X-OpenHDO-Source", "X-OpenHDO-CSRF"],
         )
     application.state.settings = settings
-    application.state.service = service
-    application.state.discovery_service = discovery_service
-    application.state.pairing_service = pairing_service
-    application.state.connections = connections
+    application.state.plugins = plugins
+    application.state.integrations = integrations
     application.state.auth_store = auth_store
-    application.state.linker_registry = linker_registry
     web_dist = Path(__file__).resolve().parents[2] / "web" / "dist"
     admin_index = web_dist / "index.html"
     application.state.admin_panel_available = admin_index.is_file()
@@ -209,7 +137,7 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             status_code=422,
             content=ProblemResponse(
                 error="validation_error",
-                detail=json.dumps(error.errors(), default=str, separators=(",", ":")),
+                detail=json.dumps([{key: item[key] for key in ("type", "loc", "msg") if key in item} for item in error.errors()], default=str, separators=(",", ":")),
             ).model_dump(mode="json"),
         )
 
@@ -255,95 +183,6 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
         if user is None:
             raise ServiceError(401, "authorization_required", "a valid admin session is required")
         return user
-
-    async def linker_list_response() -> LinkersResponse:
-        lights = service.list_lights()
-        manifests = {manifest.id: manifest for manifest in service.list_linkers()}
-        entries = {entry.id: entry for entry in linker_registry.list()}
-        views: list[LinkerView] = []
-        for linker_id in sorted(set(manifests) | set(entries)):
-            entry = entries.get(linker_id)
-            manifest = manifests.get(linker_id) or (entry.manifest if entry else None)
-            devices = [light for light in lights if light.linker_id == linker_id]
-            views.append(
-                LinkerView(
-                    id=linker_id,
-                    name=entry.name if entry else manifest.name,
-                    version=manifest.version if manifest else None,
-                    transports=manifest.transports if manifest else [],
-                    available=await connections.is_connected(linker_id),
-                    host=entry.host if entry else None,
-                    port=entry.port if entry else None,
-                    devices=devices,
-                )
-            )
-        return LinkersResponse(linkers=views)
-
-    async def process_linker_messages(linker_id: str, socket, registration_key: str | None = None) -> None:
-        registered = False
-        attached = registration_key is None
-        try:
-            while True:
-                raw_message = await socket.receive_json()
-                try:
-                    message = _validate_linker_message(raw_message)
-                except ValidationError as error:
-                    await socket.close(code=1003, reason=f"invalid v1 linker envelope: {error}")
-                    return
-                if registration_key is not None and not registered:
-                    if not isinstance(message, LinkRegisterEnvelope) or message.source != message.payload.id:
-                        await socket.close(code=1008, reason="link.register with matching linker id is required first")
-                        return
-                    linker_id = message.payload.id
-                elif message.source != linker_id:
-                    await socket.close(code=1008, reason="message source does not match linker path")
-                    return
-                try:
-                    if isinstance(message, LinkRegisterEnvelope):
-                        if registration_key is not None:
-                            linker_registry.update_manifest(message.payload, registration_key)
-                        await service.register_linker(linker_id, message)
-                        if registration_key is None:
-                            linker_registry.update_manifest(message.payload)
-                        if not attached:
-                            await connections.attach_existing(linker_id, socket)
-                            attached = True
-                        registered = True
-                    elif not registered:
-                        await socket.close(code=1008, reason="link.register is required first")
-                        return
-                    elif isinstance(message, LightStateReportedEnvelope):
-                        await service.ingest_state(linker_id, message)
-                    elif isinstance(message, DiscoveryCandidateEnvelope):
-                        await discovery_service.ingest_candidate(linker_id, message)
-                    elif isinstance(message, DiscoveryCompletedEnvelope):
-                        await discovery_service.ingest_completed(linker_id, message)
-                    elif isinstance(message, PairingCompletedEnvelope):
-                        await pairing_service.ingest_completed(linker_id, message)
-                        if message.payload.status == "completed" and message.payload.device is not None:
-                            linker_registry.add_manifest_device(linker_id, message.payload.device)
-                    else:
-                        await service.ingest_result(linker_id, message)
-                except LinkerRegistryConflict as error:
-                    await socket.close(code=1008, reason=str(error))
-                    return
-                except ServiceError as error:
-                    log_event(
-                        logger,
-                        logging.WARNING,
-                        "linker.message_rejected",
-                        {"linker_id": linker_id, "error": error.code},
-                    )
-                    await socket.close(code=1008, reason=error.detail)
-                    return
-        except WebSocketDisconnect:
-            pass
-        finally:
-            if attached:
-                was_current = await connections.detach(linker_id, socket)
-                if was_current:
-                    await discovery_service.linker_disconnected(linker_id)
-                    await pairing_service.linker_disconnected(linker_id)
 
     @application.post("/api/v1/auth/login", response_model=AuthResponse)
     async def login(request: Request, credentials: LoginRequest, response: Response) -> AuthResponse:
@@ -431,220 +270,58 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             raise ServiceError(status_code, "auth_conflict", str(error)) from error
         return Response(status_code=204)
 
-    @application.post(
-        "/api/v1/admin/linkers",
-        response_model=LinkerView,
-        status_code=201,
-        dependencies=[Depends(require_admin), Depends(require_csrf)],
-    )
-    async def add_linker(request: LinkerCreateRequest) -> LinkerView:
-        try:
-            entry = linker_registry.add_connection(request.host, request.port, request.secret)
-        except LinkerRegistryConflict as error:
-            raise ServiceError(409, "linker_conflict", str(error)) from error
-        return LinkerView(
-            id=entry.id,
-            name=entry.name,
-            available=await connections.is_connected(entry.id),
-            host=entry.host,
-            port=entry.port,
-        )
+    application.include_router(integration_router(integrations, require_authorization, require_admin, require_user, require_csrf))
+    application.include_router(plugin_router(plugins, require_user, require_admin, require_csrf))
 
-    @application.patch(
-        "/api/v1/admin/linkers/{linker_id}",
-        response_model=LinkerView,
-        dependencies=[Depends(require_admin), Depends(require_csrf)],
-    )
-    async def update_linker(linker_id: Identifier, request: LinkerUpdateRequest) -> LinkerView:
-        try:
-            entry = linker_registry.rename(linker_id, request.name)
-        except LinkerRegistryNotFound as error:
-            raise ServiceError(404, "linker_not_found", str(error)) from error
-        response = await linker_list_response()
-        return next(item for item in response.linkers if item.id == entry.id)
+    application.include_router(lights_router(integrations, require_authorization, require_user, require_csrf, settings.instance_name))
 
-    @application.delete(
-        "/api/v1/admin/linkers/{linker_id}",
-        status_code=204,
-        dependencies=[Depends(require_admin), Depends(require_csrf)],
-    )
-    async def delete_linker(linker_id: Identifier) -> Response:
-        try:
-            entry = linker_registry.delete(linker_id)
-        except LinkerRegistryNotFound as error:
-            raise ServiceError(404, "linker_not_found", str(error)) from error
-        await connections.close(entry.id)
-        service.remove_linker(entry.id)
-        return Response(status_code=204)
-
-    @application.get("/api/v1/health", response_model=HealthResponse)
-    async def health() -> HealthResponse:
-        return HealthResponse(
-            instance_name=settings.instance_name,
-            linkers_connected=await connections.count(),
-        )
-
-    @application.get("/api/v1/lights", response_model=LightsResponse, dependencies=[Depends(require_authorization)])
-    async def list_lights() -> LightsResponse:
-        return LightsResponse(lights=service.list_lights())
-
-    @application.get("/api/v1/linkers", response_model=LinkersResponse, dependencies=[Depends(require_authorization)])
-    async def list_linkers() -> LinkersResponse:
-        return await linker_list_response()
-
-    @application.get(
-        "/api/v1/lights/{light_id}",
-        response_model=LightView,
-        dependencies=[Depends(require_authorization)],
-    )
-    async def get_light(light_id: Identifier) -> LightView:
-        return service.get_light(light_id)
-
-    @application.post(
-        "/api/v1/lights/{light_id}/commands",
-        response_model=CommandResultEnvelope,
-        status_code=202,
-        dependencies=[Depends(require_user), Depends(require_csrf)],
-    )
-    async def submit_command(light_id: Identifier, command: LightCommandEnvelope) -> CommandResultEnvelope:
-        if command.payload.light_id != light_id:
-            raise ServiceError(409, "light_mismatch", "path light id does not match command payload")
-        return await service.submit_command(command)
-
-    @application.patch(
-        "/api/v1/lights/{light_id}",
-        response_model=CommandResultEnvelope,
-        status_code=202,
-        dependencies=[Depends(require_user), Depends(require_csrf)],
-    )
-    async def patch_light(
-        request: Request,
-        light_id: Identifier,
-        change: LightPatchRequest,
-    ) -> CommandResultEnvelope:
-        try:
-            source = _SOURCE_ADAPTER.validate_python(request.headers.get("x-openhdo-source", "http.client"))
-        except ValidationError as error:
-            raise ServiceError(422, "validation_error", str(error)) from error
-        command_id = uuid4()
-        if change.power is not None:
-            command: LightCommandEnvelope = PowerCommandEnvelope(
-                v=1,
-                id=command_id,
-                type="light.command.power",
-                ts=utc_now(),
-                source=source,
-                correlation_id=uuid4(),
-                payload={
-                    "light_id": light_id,
-                    "command_id": command_id,
-                    "idempotency_key": change.idempotency_key,
-                    "power": change.power,
-                },
-            )
-        elif change.brightness is not None:
-            command = BrightnessCommandEnvelope(
-                v=1,
-                id=command_id,
-                type="light.command.brightness",
-                ts=utc_now(),
-                source=source,
-                correlation_id=uuid4(),
-                payload={
-                    "light_id": light_id,
-                    "command_id": command_id,
-                    "idempotency_key": change.idempotency_key,
-                    "brightness": change.brightness,
-                },
-            )
-        else:
-            command = RgbColorCommandEnvelope(
-                v=1,
-                id=command_id,
-                type="light.command.rgb_color",
-                ts=utc_now(),
-                source=source,
-                correlation_id=uuid4(),
-                payload={
-                    "light_id": light_id,
-                    "command_id": command_id,
-                    "idempotency_key": change.idempotency_key,
-                    "rgb_color": change.rgb_color,
-                },
-            )
-        return await service.submit_command(command)
-
-    @application.post(
-        "/api/v1/discovery/sessions",
-        response_model=DiscoverySessionResponse,
-        status_code=202,
-        dependencies=[Depends(require_user), Depends(require_csrf)],
-    )
-    async def start_discovery(request: DiscoveryStartRequest) -> DiscoverySessionResponse:
-        return await discovery_service.start(request)
-
-    @application.get(
-        "/api/v1/discovery/sessions/{session_id}",
-        response_model=DiscoverySessionResponse,
-        dependencies=[Depends(require_authorization)],
-    )
-    async def get_discovery_session(session_id: UUID) -> DiscoverySessionResponse:
-        return discovery_service.get(session_id)
-
-    @application.post(
-        "/api/v1/pairing/sessions",
-        response_model=PairingSessionResponse,
-        status_code=202,
-        dependencies=[Depends(require_user), Depends(require_csrf)],
-    )
-    async def start_pairing(request: PairingStartRequest) -> PairingSessionResponse:
-        return await pairing_service.start(request)
-
-    @application.get(
-        "/api/v1/pairing/sessions/{session_id}",
-        response_model=PairingSessionResponse,
-        dependencies=[Depends(require_authorization)],
-    )
-    async def get_pairing_session(session_id: UUID) -> PairingSessionResponse:
-        return pairing_service.get(session_id)
+    @application.get("/api/v1/health")
+    async def health():
+        return {"api_version": 1, "service": "openhdo-server", "runtime": "python", "status": "ok", "instance_name": settings.instance_name, "integrations_connected": sum(item["status"] == "connected" for item in integrations.integrations())}
 
     @application.websocket("/api/v1/events")
-    async def events_socket(websocket: WebSocket) -> None:
+    async def events_socket(websocket: WebSocket):
         if not _origin_matches(websocket.headers, settings.cors_origins, require_origin=True):
             await websocket.close(code=4403, reason="origin not allowed")
             return
-        if not _token_matches(websocket.headers, settings.api_token):
+        if principal_for(websocket) is None:
             await websocket.close(code=4401, reason="authorization required")
             return
         await websocket.accept()
-        queue = events.subscribe()
+        previous = {}
+        previous_devices = None
+        next_heartbeat = asyncio.get_running_loop().time() + 20
+        disconnected = asyncio.create_task(websocket.receive())
         try:
             while True:
-                event: LightUpdatedEnvelope = await queue.get()
-                await websocket.send_json(event.model_dump(mode="json"))
+                if principal_for(websocket) is None:
+                    await websocket.close(code=4401, reason="session expired")
+                    return
+                current = {view["light_id"]: view for device in integrations.devices() if (view := light_view(device)) is not None}
+                for light_id, view in current.items():
+                    if previous.get(light_id) != view:
+                        await websocket.send_json({"v": 1, "id": str(uuid4()), "type": "light.updated", "ts": utc_now().isoformat(), "source": settings.instance_name, "payload": view})
+                previous = current
+                if websocket.query_params.get('devices') == '1':
+                    payload = {'devices': integrations.devices(), 'integrations': integrations.integrations(), 'rooms': integrations.rooms()}
+                    # Poll timestamps are not composition changes.
+                    comparison = {**payload, 'integrations': [{key: value for key, value in entry.items() if key != 'synced_at'} for entry in payload['integrations']]}
+                    if comparison != previous_devices:
+                        await websocket.send_json({'v': 1, 'id': str(uuid4()), 'type': 'devices.updated', 'ts': utc_now().isoformat(), 'source': settings.instance_name, 'payload': payload})
+                        previous_devices = comparison
+                    if asyncio.get_running_loop().time() >= next_heartbeat:
+                        await websocket.send_json({'v': 1, 'id': str(uuid4()), 'type': 'devices.heartbeat', 'ts': utc_now().isoformat(), 'source': settings.instance_name, 'payload': {}})
+                        next_heartbeat = asyncio.get_running_loop().time() + 20
+                done, _ = await asyncio.wait({disconnected}, timeout=1)
+                if done:
+                    if disconnected.result()["type"] == "websocket.disconnect":
+                        return
+                    disconnected = asyncio.create_task(websocket.receive())
         except WebSocketDisconnect:
             pass
         finally:
-            events.unsubscribe(queue)
-
-    @application.websocket("/api/v1/linkers/{linker_id}")
-    async def linker_socket(websocket: WebSocket, linker_id: Identifier) -> None:
-        if not _origin_matches(websocket.headers, settings.cors_origins):
-            await websocket.close(code=4403, reason="origin not allowed")
-            return
-        if not _token_matches(websocket.headers, settings.api_token):
-            await websocket.close(code=4401, reason="authorization required")
-            return
-        if not linker_registry.is_registered(linker_id):
-            await websocket.close(code=1008, reason="linker must be added by an admin first")
-            return
-        await connections.attach(linker_id, websocket)
-        await process_linker_messages(linker_id, websocket)
-
-    async def handle_outbound_linker(entry, socket: OutboundLinkerSocket) -> None:
-        await process_linker_messages(entry.id, socket, registration_key=entry.key)
-
-    outbound_connector = LinkerConnector(linker_registry, handle_outbound_linker, logger)
+            disconnected.cancel()
+            await asyncio.gather(disconnected, return_exceptions=True)
 
     if application.state.admin_panel_available:
         @application.api_route("/", methods=["GET"], include_in_schema=False)
@@ -691,12 +368,6 @@ def create_app(settings: ServerSettings | None = None) -> FastAPI:
             )
 
     return application
-
-
-def _validate_linker_message(raw_message: object) -> LinkerEnvelope:
-    from pydantic import TypeAdapter
-
-    return TypeAdapter(LinkerEnvelope).validate_python(raw_message)
 
 
 def _auth_user(user: UserRecord) -> AuthUser:

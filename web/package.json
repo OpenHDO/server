@@ -7,13 +7,17 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
+    "test": "node --test tests/device-model.test.mjs tests/notifications.test.mjs tests/design-preview.test.mjs tests/plugins.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",
     "boring-avatars": "^2.0.4",
+    "hls.js": "^1.7.3",
+    "i18next": "^26.4.2",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-i18next": "^17.0.16"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0",

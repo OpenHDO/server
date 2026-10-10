@@ -106,6 +106,7 @@ _ENVIRONMENT_KEYS = {
     "OPENHDO_API_TOKEN": "api_token",
     "OPENHDO_CORS_ORIGINS": "cors_origins",
     "OPENHDO_AUTH_DB": "auth_db_path",
+    "OPENHDO_DATA_DIR": "data_dir",
     "OPENHDO_ADMIN_USERNAME": "admin_username",
     "OPENHDO_ADMIN_PASSWORD": "admin_password",
 }

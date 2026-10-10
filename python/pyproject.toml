@@ -11,7 +11,10 @@ dependencies = [
   "fastapi>=0.115,<1",
   "pydantic>=2.9,<3",
   "uvicorn[standard]>=0.34,<1",
-  "websockets>=13,<17",
+  "httpx>=0.28,<1",
+  "tuya-device-sharing-sdk>=0.2.15,<0.3",
+  "cryptography>=43,<49",
+  "qrcode>=8,<9",
 ]
 classifiers = [
   "Development Status :: 3 - Alpha",
@@ -27,7 +30,9 @@ dev = [
 
 [project.scripts]
 openhdo-server = "openhdo_server.__main__:main"
-linkerct = "openhdo_linker_service.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.setuptools.package-data]
+openhdo_server = ["device_types.json"]

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "qr_image": {
+      "title": "Qr Image",
+      "type": "string"
+    },
+    "expires_in": {
+      "title": "Expires In",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "qr_image",
+    "expires_in"
+  ],
+  "title": "TuyaLoginView",
+  "type": "object"
+}

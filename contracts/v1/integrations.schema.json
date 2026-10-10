@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "IntegrationView": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "region": {
+          "title": "Region",
+          "type": "string"
+        },
+        "access_id": {
+          "title": "Access Id",
+          "type": "string"
+        },
+        "uid": {
+          "title": "Uid",
+          "type": "string"
+        },
+        "auth_method": {
+          "default": "cloud",
+          "enum": [
+            "cloud",
+            "account",
+            "yandex",
+            "plugin"
+          ],
+          "title": "Auth Method",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "connecting",
+            "connected",
+            "error"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Error"
+        },
+        "synced_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Synced At"
+        },
+        "device_count": {
+          "minimum": 0,
+          "title": "Device Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "provider",
+        "name",
+        "region",
+        "access_id",
+        "uid",
+        "status",
+        "error",
+        "synced_at",
+        "device_count"
+      ],
+      "title": "IntegrationView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "integrations": {
+      "items": {
+        "$ref": "#/$defs/IntegrationView"
+      },
+      "title": "Integrations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "integrations"
+  ],
+  "title": "IntegrationsResponse",
+  "type": "object"
+}

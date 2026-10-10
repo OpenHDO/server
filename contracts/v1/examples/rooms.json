@@ -1,0 +1,9 @@
+{
+  "rooms": [
+    {
+      "id": "room-example",
+      "name": "Office",
+      "device_count": 0
+    }
+  ]
+}

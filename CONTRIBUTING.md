@@ -1,13 +1,20 @@
 # Contributing to OpenHDO
 
-Keep the core small and the boundaries explicit. The server owns shared state
-and orchestration; Linkers own local hardware access; clients use public
-contracts instead of internal Python or storage details.
+The server owns integrations, credentials, inventory, policy and Devices.
+Adapters live in the server and use public vendor APIs. Clients use versioned
+APIs, never SQLite or vendor secrets.
 
-Before opening a change, run the checks from [DOCS.md](DOCS.md): Python
-unittest/import checks and the web build. New public messages belong under
-`contracts/v1/` and must include a representative example.
+Follow panel patterns: dark neutral surfaces, accent tokens, Phosphor icons,
+responsive grids, loading/error/empty states and accessible forms. Devices
+belongs to built-in navigation, not the module loader.
+Use `useNotifications()` for errors and action confirmations. Notifications float
+above the panel and dialogs; never insert status banners that shift forms or
+cards. Loading and empty content states remain part of the view. Report cloud
+commands as accepted, not as confirmed hardware changes.
 
-Prefer standard-library and platform facilities over new dependencies. Add a
-dependency only when it removes meaningful complexity or provides a security,
-portability, or correctness guarantee that the project cannot reasonably own.
+Prefer standard-library/installed dependencies. Validate inventories and
+commands. Never synthesize devices or report cloud acceptance as hardware
+confirmation. Public additions require schemas, examples and compatibility tests.
+Historical v1 schemas stay available to SDK consumers.
+
+Run Python tests, compile/import/entrypoint checks and the web build in DOCS.md.

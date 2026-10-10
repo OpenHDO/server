@@ -1,0 +1,7 @@
+{
+  "id": "local-login-id",
+  "user_code": "ABCD-EFGH",
+  "verification_url": "https://oauth.yandex.ru/device",
+  "expires_in": 300,
+  "interval": 5
+}

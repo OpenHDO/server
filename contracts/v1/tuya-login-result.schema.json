@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "status": {
+      "enum": [
+        "pending",
+        "connected"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "integration_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Integration Id"
+    }
+  },
+  "required": [
+    "status"
+  ],
+  "title": "TuyaLoginResult",
+  "type": "object"
+}

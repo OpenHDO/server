@@ -47,6 +47,7 @@ class AuthApiTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             settings = ServerSettings(
                 auth_db_path=str(Path(directory) / "auth.sqlite3"),
+                data_dir=directory,
                 admin_username="admin",
                 admin_password="correct-password",
             )
@@ -67,6 +68,7 @@ class AuthApiTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             settings = ServerSettings(
                 auth_db_path=str(Path(directory) / "auth.sqlite3"),
+                data_dir=directory,
                 admin_username="admin",
                 admin_password="correct-password",
             )
@@ -153,6 +155,7 @@ class AuthApiTests(unittest.TestCase):
         with TemporaryDirectory() as directory:
             settings = ServerSettings(
                 auth_db_path=str(Path(directory) / "auth.sqlite3"),
+                data_dir=directory,
                 admin_username="admin",
                 admin_password="correct-password",
             )
@@ -181,59 +184,11 @@ class AuthApiTests(unittest.TestCase):
                 )
                 self.assertEqual(cannot_delete_last_admin.status_code, 409)
 
-    def test_admin_can_register_linker(self) -> None:
-        with TemporaryDirectory() as directory:
-            data_dir = Path(directory) / "data"
-            settings = ServerSettings(
-                auth_db_path=str(Path(directory) / "auth.sqlite3"),
-                data_dir=str(data_dir),
-                admin_username="admin",
-                admin_password="correct-password",
-            )
-            with TestClient(create_app(settings)) as client:
-                client.post(
-                    "/api/v1/auth/login",
-                    json={"username": "admin", "password": "correct-password"},
-                )
-                csrf = client.cookies.get("openhdo_csrf")
-                added = client.post(
-                    "/api/v1/admin/linkers",
-                    json={"host": "127.0.0.1", "port": 8765, "secret": "linker1"},
-                    headers={"X-OpenHDO-CSRF": csrf},
-                )
-                self.assertEqual(added.status_code, 201)
-                self.assertFalse(added.json()["available"])
-                added_payload = added.json()
-                self.assertEqual(added_payload["host"], "127.0.0.1")
-                self.assertEqual(added_payload["port"], 8765)
-                self.assertNotIn("secret", added_payload)
-                self.assertEqual(client.get("/api/v1/linkers").json()["linkers"][0]["host"], "127.0.0.1")
-                duplicate = client.post(
-                    "/api/v1/admin/linkers",
-                    json={"host": "127.0.0.1", "port": 8765, "secret": "linker1"},
-                    headers={"X-OpenHDO-CSRF": csrf},
-                )
-                self.assertEqual(duplicate.status_code, 409)
-                renamed = client.patch(
-                    f"/api/v1/admin/linkers/{added_payload['id']}",
-                    json={"name": "Office Linker"},
-                    headers={"X-OpenHDO-CSRF": csrf},
-                )
-                self.assertEqual(renamed.status_code, 200)
-                self.assertEqual(renamed.json()["name"], "Office Linker")
-                self.assertEqual(client.get("/api/v1/linkers").json()["linkers"][0]["name"], "Office Linker")
-                deleted = client.delete(
-                    f"/api/v1/admin/linkers/{added_payload['id']}",
-                    headers={"X-OpenHDO-CSRF": csrf},
-                )
-                self.assertEqual(deleted.status_code, 204)
-                self.assertEqual(client.get("/api/v1/linkers").json()["linkers"], [])
-            self.assertTrue((data_dir / "modules" / "connector" / "linkers.json").is_file())
-
     def test_last_active_admin_cannot_be_removed(self) -> None:
         with TemporaryDirectory() as directory:
             settings = ServerSettings(
                 auth_db_path=str(Path(directory) / "auth.sqlite3"),
+                data_dir=directory,
                 admin_username="admin",
                 admin_password="correct-password",
             )

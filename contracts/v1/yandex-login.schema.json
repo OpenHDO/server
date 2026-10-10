@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "user_code": {
+      "title": "User Code",
+      "type": "string"
+    },
+    "verification_url": {
+      "enum": [
+        "https://oauth.yandex.ru/device",
+        "https://ya.ru/device"
+      ],
+      "title": "Verification Url",
+      "type": "string"
+    },
+    "expires_in": {
+      "exclusiveMinimum": 0,
+      "title": "Expires In",
+      "type": "integer"
+    },
+    "interval": {
+      "minimum": 5,
+      "title": "Interval",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "user_code",
+    "verification_url",
+    "expires_in",
+    "interval"
+  ],
+  "title": "YandexLoginView",
+  "type": "object"
+}

@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "DeviceControl": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "Boolean",
+            "Integer",
+            "Enum",
+            "Json"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "constraints": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Constraints",
+          "type": "object"
+        }
+      },
+      "required": [
+        "code",
+        "name",
+        "type",
+        "constraints"
+      ],
+      "title": "DeviceControl",
+      "type": "object"
+    },
+    "DeviceView": {
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "External Id",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "device_type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device Type"
+        },
+        "available": {
+          "title": "Available",
+          "type": "boolean"
+        },
+        "state_stale": {
+          "default": false,
+          "title": "State Stale",
+          "type": "boolean"
+        },
+        "controls": {
+          "items": {
+            "$ref": "#/$defs/DeviceControl"
+          },
+          "title": "Controls",
+          "type": "array"
+        },
+        "state": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "State",
+          "type": "object"
+        },
+        "status_specs": {
+          "additionalProperties": {
+            "additionalProperties": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "type": "object"
+          },
+          "title": "Status Specs",
+          "type": "object"
+        },
+        "product_name": {
+          "title": "Product Name",
+          "type": "string"
+        },
+        "updated_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Updated At"
+        },
+        "state_revision": {
+          "default": 0,
+          "minimum": 0,
+          "title": "State Revision",
+          "type": "integer"
+        },
+        "icon": {
+          "anyOf": [
+            {
+              "const": "garland",
+              "enum": [
+                "garland"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Icon"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "integration_id": {
+          "title": "Integration Id",
+          "type": "string"
+        },
+        "area": {
+          "title": "Area",
+          "type": "string"
+        },
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "room_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Room Id"
+        },
+        "kind_override": {
+          "anyOf": [
+            {
+              "enum": [
+                "cz",
+                "dj"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kind Override"
+        }
+      },
+      "required": [
+        "external_id",
+        "name",
+        "kind",
+        "available",
+        "controls",
+        "state",
+        "product_name",
+        "updated_at",
+        "id",
+        "integration_id",
+        "area",
+        "enabled"
+      ],
+      "title": "DeviceView",
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "devices": {
+      "items": {
+        "$ref": "#/$defs/DeviceView"
+      },
+      "title": "Devices",
+      "type": "array"
+    }
+  },
+  "required": [
+    "devices"
+  ],
+  "title": "DevicesResponse",
+  "type": "object"
+}

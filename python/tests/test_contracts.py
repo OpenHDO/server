@@ -102,6 +102,16 @@ class ContractTests(unittest.TestCase):
         self.assertGreaterEqual(len(examples), 7)
         for path in examples:
             message = _load(path)
+            from openhdo_server.integrations import IntegrationInput, DeviceAction, DeviceUpdate, DevicesResponse, IntegrationsResponse, RoomInput, RoomsResponse, TuyaLoginInput, TuyaLoginView, TuyaLoginResult, YandexLoginInput, YandexLoginView
+            http_models = {"integration-input": IntegrationInput, "device-action": DeviceAction, "device-update": DeviceUpdate, "devices": DevicesResponse, "integrations": IntegrationsResponse, "room-input": RoomInput, "rooms": RoomsResponse, "tuya-login-input": TuyaLoginInput, "tuya-login": TuyaLoginView, "tuya-login-result": TuyaLoginResult}
+            http_models.update({"yandex-login-input": YandexLoginInput, "yandex-login": YandexLoginView})
+            if path.stem in http_models:
+                model = http_models[path.stem]
+                model.model_validate(message)
+                schema = _load(CONTRACTS / f"{path.stem}.schema.json")
+                schema.pop("$schema")
+                self.assertEqual(schema, model.model_json_schema())
+                continue
             self._assert_envelope(message)
             message_type = message["type"]
             payload = message["payload"]

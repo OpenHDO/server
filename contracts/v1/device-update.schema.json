@@ -1,0 +1,58 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "area": {
+      "default": "",
+      "maxLength": 128,
+      "title": "Area",
+      "type": "string"
+    },
+    "enabled": {
+      "default": true,
+      "title": "Enabled",
+      "type": "boolean"
+    },
+    "room_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Room Id"
+    },
+    "kind_override": {
+      "anyOf": [
+        {
+          "enum": [
+            "cz",
+            "dj"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Kind Override"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "title": "DeviceUpdate",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

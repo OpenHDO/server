@@ -1,5 +1,10 @@
+import { useTranslation } from "react-i18next";
+import { t, responseError } from "./i18n";
+import { useNotifications } from "./notifications";
 import Avatar from "boring-avatars";
 import { CaretDown } from "@phosphor-icons/react/CaretDown";
+import { List } from "@phosphor-icons/react/List";
+import { X } from "@phosphor-icons/react/X";
 import { GearSix } from "@phosphor-icons/react/GearSix";
 import { House } from "@phosphor-icons/react/House";
 import { SignIn } from "@phosphor-icons/react/SignIn";
@@ -7,15 +12,21 @@ import { SignOut } from "@phosphor-icons/react/SignOut";
 import { SquaresFour } from "@phosphor-icons/react/SquaresFour";
 import { UserPlus } from "@phosphor-icons/react/UserPlus";
 import { UsersThree } from "@phosphor-icons/react/UsersThree";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { getPanelModules, subscribeToModules } from "./modules/load";
 import type { PanelAuthUser, PanelModule, PanelModuleContext } from "./modules/registry";
+import { Devices } from "@phosphor-icons/react/Devices";
+import { PuzzlePiece } from "@phosphor-icons/react/PuzzlePiece";
+import PluginsView from "./builtins/plugins";
+import { syncPlugins, unloadPlugins } from "./plugins/runtime";
+import DevicesView from "./builtins/devices";
 import SettingsView from "./builtins/settings";
 import UsersView from "./builtins/users";
+import DesignPreview from "./design-preview/DevicesPreview";
 
 type AuthMode = "login" | "register";
-type PageRoute = "home" | "admin" | "auth" | "not-found";
+type PageRoute = "home" | "admin" | "auth" | "design-preview" | "not-found";
 type AuthState =
   | { status: "loading"; user: null }
   | { status: "guest"; user: null }
@@ -33,11 +44,14 @@ type PanelNavigationItem = {
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const pageRoute = resolveRoute(window.location.pathname);
 const builtInItems: PanelNavigationItem[] = [
+  { id: "devices", label: "Devices", icon: Devices, component: DevicesView, order: 5 },
   { id: "users", label: "Users", icon: UsersThree, component: UsersView, requiredRoles: ["admin"], order: 40 },
+  { id: "plugins", label: "Plugins", icon: PuzzlePiece, component: PluginsView, requiredRoles: ["admin"], order: 45 },
   { id: "settings", label: "Settings", icon: GearSix, component: SettingsView, requiredRoles: ["admin"], order: 50 },
 ];
 
 function resolveRoute(pathname: string): PageRoute {
+  if (pathname === "/admin/design-preview" || pathname === "/admin/design-preview/") return "design-preview";
   if (pathname === "/") return "home";
   if (pathname === "/admin" || pathname === "/admin/") return "admin";
   if (pathname === "/auth" || pathname === "/auth/") return "auth";
@@ -58,10 +72,7 @@ function requestFromModule(input: RequestInfo | URL, init?: RequestInit) {
   return fetch(input, { ...init, headers, credentials: init?.credentials ?? "same-origin" });
 }
 
-async function responseError(response: Response) {
-  const payload = (await response.json().catch(() => null)) as ApiError | null;
-  return payload?.detail ?? `Request failed (${response.status})`;
-}
+
 
 function nextPath() {
   const requested = new URLSearchParams(window.location.search).get("next");
@@ -73,13 +84,16 @@ function openAuthPage(mode: AuthMode) {
 }
 
 export default function App() {
+  const { t } = useTranslation();
+  const notify = useNotifications();
   const [auth, setAuth] = useState<AuthState>({ status: "loading", user: null });
   const [authError, setAuthError] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loginPending, setLoginPending] = useState(false);
+  useEffect(() => { const message = loginError || authError; if (message) notify("error", message); }, [loginError, authError, notify]);
 
   useEffect(() => {
-    if (pageRoute === "not-found") return;
+    if (pageRoute === "not-found" || pageRoute === "design-preview") return;
     let mounted = true;
     requestFromModule("/api/v1/auth/me")
       .then(async (response) => {
@@ -94,8 +108,8 @@ export default function App() {
       })
       .catch(() => {
         if (mounted) {
-          setAuthError("Server unavailable");
-          setLoginError("Server unavailable");
+          setAuthError(t("Server unavailable"));
+          setLoginError(t("Server unavailable"));
           setAuth({ status: "guest", user: null });
         }
       });
@@ -126,7 +140,7 @@ export default function App() {
       setAuth({ status: "authenticated", user: payload.user });
       return true;
     } catch (error) {
-      setLoginError(error instanceof Error ? error.message : "Unable to sign in");
+      setLoginError(error instanceof Error ? error.message : t("Unable to sign in"));
       return false;
     } finally {
       setLoginPending(false);
@@ -140,6 +154,7 @@ export default function App() {
   }
 
   if (pageRoute === "not-found") return <NotFoundPage />;
+  if (pageRoute === "design-preview") return <PanelShell user={null} onLogin={() => {}} onLogout={async () => {}} preview />;
   if (auth.status === "loading") return <LoadingScreen />;
   if (pageRoute === "home") {
     return <HomePage user={auth.status === "authenticated" ? auth.user : null} authError={authError} onLogout={logout} />;
@@ -162,6 +177,7 @@ export default function App() {
 }
 
 function LoadingScreen() {
+  const { t } = useTranslation();
   return (
     <div className="grid min-h-screen place-items-center bg-[#0a0a0a]">
       <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-10 w-10 animate-pulse" />
@@ -170,6 +186,7 @@ function LoadingScreen() {
 }
 
 function NotFoundPage() {
+  const { t } = useTranslation();
   return (
     <main className="grid min-h-screen place-items-center bg-[#0a0a0a] px-5 text-slate-100">
       <div className="w-full max-w-sm space-y-6 text-center">
@@ -179,21 +196,20 @@ function NotFoundPage() {
         </div>
         <div className="space-y-2">
           <p className="font-brand text-6xl font-bold tracking-tight text-accent">404</p>
-          <h1 className="font-brand text-2xl font-bold tracking-tight">Page not found</h1>
+          <h1 className="font-brand text-2xl font-bold tracking-tight">{t("Page not found")}</h1>
         </div>
         <a
           href="/"
           className="inline-flex items-center gap-2 rounded-md border border-neutral-700 px-4 py-2 text-sm text-neutral-200 transition hover:border-neutral-500 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
         >
-          <House size={18} aria-hidden="true" />
-          Go home
-        </a>
+          <House size={18} aria-hidden="true" />{t("Go home")}</a>
       </div>
     </main>
   );
 }
 
 function HomePage({ user, authError, onLogout }: { user: PanelAuthUser | null; authError: string | null; onLogout: () => Promise<void> }) {
+  const { t } = useTranslation();
   return (
     <main className="min-h-screen bg-[#0a0a0a] text-slate-100">
       <div className="fixed left-4 top-4 z-20 min-[390px]:left-5 min-[390px]:top-5">
@@ -214,11 +230,14 @@ function AuthPage({
   loginPending: boolean;
   loginError: string | null;
 }) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [registerPending, setRegisterPending] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const notify = useNotifications();
+  useEffect(() => { if (registerError) notify("error", registerError); }, [registerError, notify]);
   const busy = loginPending || registerPending;
 
   function changeMode(next: AuthMode) {
@@ -238,9 +257,9 @@ function AuthPage({
         body: JSON.stringify({ username, password }),
       });
       if (!response.ok) throw new Error(await responseError(response));
-      if (!(await onLogin(username, password))) throw new Error("Unable to sign in");
+      if (!(await onLogin(username, password))) throw new Error(t("Unable to sign in"));
     } catch (error) {
-      setRegisterError(error instanceof Error ? error.message : "Unable to create account");
+      setRegisterError(error instanceof Error ? error.message : t("Unable to create account"));
     } finally {
       setRegisterPending(false);
     }
@@ -261,14 +280,12 @@ function AuthPage({
           <span className="font-brand text-xl font-bold tracking-tight">OpenHDO</span>
         </div>
         <div className="flex gap-5 border-b border-neutral-800 text-sm">
-          <button type="button" onClick={() => changeMode("login")} className={`border-b-2 pb-3 ${mode === "login" ? "border-accent text-neutral-100" : "border-transparent text-neutral-500"}`}>Sign in</button>
-          <button type="button" onClick={() => changeMode("register")} className={`border-b-2 pb-3 ${mode === "register" ? "border-accent text-neutral-100" : "border-transparent text-neutral-500"}`}>Register</button>
+          <button type="button" onClick={() => changeMode("login")} className={`border-b-2 pb-3 ${mode === "login" ? "border-accent text-neutral-100" : "border-transparent text-neutral-500"}`}>{t("Sign in")}</button>
+          <button type="button" onClick={() => changeMode("register")} className={`border-b-2 pb-3 ${mode === "register" ? "border-accent text-neutral-100" : "border-transparent text-neutral-500"}`}>{t("Register")}</button>
         </div>
-        <h1 className="font-brand text-2xl font-bold tracking-tight">{mode === "login" ? "Sign in" : "Create account"}</h1>
+        <h1 className="font-brand text-2xl font-bold tracking-tight">{mode === "login" ? t("Sign in") : t("Create account")}</h1>
         <div className="space-y-3">
-          <label className="grid gap-2 text-sm text-neutral-300">
-            Username
-            <input
+          <label className="grid gap-2 text-sm text-neutral-300">{t("Username")}<input
               autoComplete="username"
               required
               value={username}
@@ -276,9 +293,7 @@ function AuthPage({
               className="h-11 rounded-md border border-neutral-700 bg-neutral-950 px-3 text-neutral-100 outline-none transition focus:border-accent"
             />
           </label>
-          <label className="grid gap-2 text-sm text-neutral-300">
-            Password
-            <input
+          <label className="grid gap-2 text-sm text-neutral-300">{t("Password")}<input
               autoComplete={mode === "login" ? "current-password" : "new-password"}
               required
               minLength={8}
@@ -289,23 +304,46 @@ function AuthPage({
             />
           </label>
         </div>
-        {(mode === "login" ? loginError : registerError) && <p className="border-y border-red-900/70 py-3 text-sm text-red-300">{mode === "login" ? loginError : registerError}</p>}
         <button
           type="submit"
           disabled={busy}
           className="h-11 w-full rounded-md bg-accent px-4 text-sm font-semibold text-neutral-950 transition hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:pointer-events-none disabled:opacity-60"
         >
-          {busy ? (mode === "login" ? "Signing in…" : "Creating…") : mode === "login" ? "Sign in" : "Create account"}
+          {busy ? (mode === "login" ? t("Signing in…") : t("Creating…")) : mode === "login" ? t("Sign in") : t("Create account")}
         </button>
       </form>
     </main>
   );
 }
 
-function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; onLogin: () => void; onLogout: () => Promise<void> }) {
+function PanelShell({ user, onLogin, onLogout, preview = false }: { user: PanelAuthUser | null; onLogin: () => void; onLogout: () => Promise<void>; preview?: boolean }) {
+  const { t } = useTranslation();
   const panelItems = useSyncExternalStore(subscribeToModules, getPanelModules, getPanelModules);
-  const navigationItems = [...panelItems, ...builtInItems].sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER));
+  const navigationItems: PanelNavigationItem[] = preview
+    ? [{ id: "devices", label: "Devices", icon: Devices, component: DesignPreview }]
+    : [...panelItems, ...builtInItems].sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER));
   const [activeId, setActiveId] = useState<string | null>(navigationItems[0]?.id ?? null);
+  const [navigationOpen, setNavigationOpen] = useState(false);
+  const navigationDialog = useRef<HTMLDialogElement>(null);
+  const navigationButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!navigationOpen) return;
+    const dialog = navigationDialog.current;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    dialog?.showModal();
+    return () => {
+      dialog?.close();
+      document.body.style.overflow = previousOverflow;
+      if (!window.matchMedia("(min-width: 768px)").matches) navigationButton.current?.focus();
+    };
+  }, [navigationOpen]);
+  useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 768px)");
+    const closeOnDesktop = () => { if (desktop.matches) setNavigationOpen(false); };
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
   const activeItem = navigationItems.find((item) => item.id === activeId) ?? navigationItems[0];
   const selectItem = (id: string) => {
     const item = navigationItems.find((candidate) => candidate.id === id);
@@ -315,44 +353,100 @@ function PanelShell({ user, onLogin, onLogout }: { user: PanelAuthUser | null; o
       return;
     }
     setActiveId(id);
+    setNavigationOpen(false);
   };
   const moduleContext: PanelModuleContext = {
     navigate: selectItem,
     api: { request: requestFromModule },
     auth: { user, login: onLogin, logout: onLogout },
   };
+  const currentContext = useRef(moduleContext);
+  currentContext.current = moduleContext;
+  const stableContext = useRef(new Proxy(moduleContext, { get: (_target, key) => Reflect.get(currentContext.current, key) })).current;
+  const pluginNotify = useNotifications();
+  useEffect(() => {
+    if (!user) return;
+    void syncPlugins(stableContext, pluginNotify).catch((error: Error) => pluginNotify("error", error.message));
+    return unloadPlugins;
+  }, [user?.id]);
+
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-slate-100">
-      <header className="flex h-16 items-center justify-between border-b border-neutral-800 px-4 min-[390px]:px-5 md:px-6 wide:px-8">
+      <header className="flex h-14 items-center justify-between border-b md:h-16 border-neutral-800 px-4 min-[390px]:px-5 md:px-6 wide:px-8">
         <div className="flex items-center gap-3">
-          <a href="/" aria-label="OpenHDO home" className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+          <button
+            ref={navigationButton}
+            type="button"
+            aria-label={t("Open navigation")}
+            aria-expanded={navigationOpen}
+            aria-controls="mobile-panel-navigation"
+            aria-haspopup="dialog"
+            onClick={() => setNavigationOpen(true)}
+            className="grid h-9 w-9 place-items-center rounded-md text-neutral-300 hover:bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent md:hidden"
+          >
+            <List size={22} aria-hidden="true" />
+          </button>
+          <a href="/" aria-label={t("OpenHDO home")} className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
             <img src="/admin/brand/OpenHDO-green.png" alt="OpenHDO" className="h-8 w-8" />
           </a>
-          <span className="font-brand text-lg font-bold tracking-tight">Admin</span>
+          <span className="font-brand text-lg font-bold tracking-tight">{preview ? "Design preview" : t("Admin")}</span>
         </div>
-        <MiniProfile user={user} onLogout={onLogout} />
+        {preview ? <a href="/admin/" className="rounded-md px-3 py-2 text-sm text-neutral-400 hover:bg-neutral-900 hover:text-white focus-visible:ring-2 focus-visible:ring-accent">{t("Admin panel")}</a> : <MiniProfile user={user} onLogout={onLogout} />}
       </header>
 
-      <div className="flex flex-col md:grid md:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_1fr] wide:grid-cols-[15rem_1fr]">
-        <aside className="border-b border-neutral-800 px-4 py-3 min-[390px]:px-5 md:border-b-0 md:border-r md:px-3 md:py-5 wide:px-4" aria-label="Panel navigation">
-          <nav className="flex gap-1 overflow-x-auto md:h-full md:flex-col" aria-label="Modules">
+      <div className="md:grid md:min-h-[calc(100vh-4rem)] md:grid-cols-[13rem_1fr] wide:grid-cols-[15rem_1fr]">
+        <aside className="hidden border-r border-neutral-800 px-3 py-3 md:block wide:px-4" aria-label={t("Panel navigation")}>
+          <nav className="flex h-full flex-col gap-1" aria-label={t("Modules")}>
             {navigationItems.map((item) => <ModuleLink key={item.id} item={item} activeId={activeId} onSelect={selectItem} />)}
           </nav>
         </aside>
 
-        <main className="min-w-0 px-4 py-6 min-[390px]:px-5 md:px-8 md:py-8 wide:px-12" aria-label={activeItem ? `${activeItem.label} module` : "Panel modules"}>
+        <main className="min-w-0 px-4 py-3 min-[390px]:px-5 sm:py-4 md:px-8 wide:px-12 [&>*]:mx-auto" aria-label={activeItem ? t("{{name}} module", { name: t(activeItem.label) }) : t("Panel modules")}>
           {activeItem ? <activeItem.component context={moduleContext} /> : null}
         </main>
       </div>
+      {navigationOpen && (
+        <dialog
+          ref={navigationDialog}
+          id="mobile-panel-navigation"
+          aria-label={t("Panel navigation")}
+          className="fixed inset-y-0 left-0 m-0 h-dvh max-h-none w-64 max-w-[85vw] border-0 bg-neutral-950 p-3 text-slate-100 shadow-2xl backdrop:bg-black/60"
+          onCancel={() => setNavigationOpen(false)}
+          onKeyDown={(event) => {
+            if (event.key !== "Tab") return;
+            const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button:not(:disabled)")];
+            const target = event.shiftKey && document.activeElement === buttons[0] ? buttons.at(-1)
+              : !event.shiftKey && document.activeElement === buttons.at(-1) ? buttons[0] : null;
+            if (target) { event.preventDefault(); target.focus(); }
+          }}
+          onClick={(event) => {
+            const bounds = event.currentTarget.getBoundingClientRect();
+            if (event.target === event.currentTarget && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) setNavigationOpen(false);
+          }}
+        >
+          <div className="mb-3 flex items-center justify-between px-3">
+            <span className="font-brand text-lg font-semibold">{t("Menu")}</span>
+            <button type="button" aria-label={t("Close navigation")} onClick={() => setNavigationOpen(false)} className="grid h-9 w-9 place-items-center rounded-md text-neutral-400 hover:bg-neutral-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+          <nav className="flex flex-col gap-1" aria-label={t("Modules")}>
+            {navigationItems.map((item) => <ModuleLink key={item.id} item={item} activeId={activeId} onSelect={selectItem} />)}
+          </nav>
+        </dialog>
+      )}
     </div>
   );
 }
 
 function MiniProfile({ user, authNext = "/admin/", authError, onLogout }: { user: PanelAuthUser | null; authNext?: string; authError?: string | null; onLogout: () => Promise<void> }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const notify = useNotifications();
+  useEffect(() => { if (error) notify("error", error); }, [error, notify]);
   const menuPosition = authNext === "/" ? "left-0" : "right-0";
 
   useEffect(() => {
@@ -371,7 +465,7 @@ function MiniProfile({ user, authNext = "/admin/", authError, onLogout }: { user
       await onLogout();
       setOpen(false);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Unable to sign out");
+      setError(caught instanceof Error ? caught.message : t("Unable to sign out"));
     } finally {
       setPending(false);
     }
@@ -381,7 +475,7 @@ function MiniProfile({ user, authNext = "/admin/", authError, onLogout }: { user
     <div className="relative">
       <button
         type="button"
-        aria-label={user ? `Open profile for ${user.username}` : "Open sign in menu"}
+        aria-label={user ? t("Open profile for {{name}}", { name: user.username }) : t("Open sign in menu")}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((current) => !current)}
@@ -395,16 +489,14 @@ function MiniProfile({ user, authNext = "/admin/", authError, onLogout }: { user
         {user ? <>
           <div className="border-b border-neutral-800 px-3 py-2">
             <div className="text-sm text-neutral-100">{user.username}</div>
-            <div className="mt-1 text-xs text-neutral-500">{user.role}</div>
+            <div className="mt-1 text-xs text-neutral-500">{t(user.role === "admin" ? "Administrator" : "User")}</div>
           </div>
-          {user.role === "admin" && <a role="menuitem" href="/admin/" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SquaresFour size={17} aria-hidden="true" />Admin panel</a>}
-          <button type="button" role="menuitem" disabled={pending} onClick={() => void handleLogout()} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 disabled:opacity-60"><SignOut size={17} aria-hidden="true" />Sign out</button>
+          {user.role === "admin" && <a role="menuitem" href="/admin/" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SquaresFour size={17} aria-hidden="true" />{t("Admin panel")}</a>}
+          <button type="button" role="menuitem" disabled={pending} onClick={() => void handleLogout()} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100 disabled:opacity-60"><SignOut size={17} aria-hidden="true" />{t("Sign out")}</button>
         </> : <>
-          <a role="menuitem" href={`/auth?mode=login&next=${encodeURIComponent(authNext)}`} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SignIn size={17} aria-hidden="true" />Sign in</a>
-          <a role="menuitem" href={`/auth?mode=register&next=${encodeURIComponent(authNext)}`} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><UserPlus size={17} aria-hidden="true" />Register</a>
+          <a role="menuitem" href={`/auth?mode=login&next=${encodeURIComponent(authNext)}`} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><SignIn size={17} aria-hidden="true" />{t("Sign in")}</a>
+          <a role="menuitem" href={`/auth?mode=register&next=${encodeURIComponent(authNext)}`} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-300 transition hover:bg-neutral-900 hover:text-neutral-100"><UserPlus size={17} aria-hidden="true" />{t("Register")}</a>
         </>}
-        {authError && <div className="border-t border-red-900/70 px-3 py-2 text-xs text-red-300">{authError}</div>}
-        {error && <div className="border-t border-red-900/70 px-3 py-2 text-xs text-red-300">{error}</div>}
       </div>}
     </div>
   );
@@ -413,6 +505,7 @@ function MiniProfile({ user, authNext = "/admin/", authError, onLogout }: { user
 const avatarColors = ["#e879f9", "#38bdf8", "#fcd34d", "#a3e635", "#a78bfa"];
 
 function ModuleLink({ item, activeId, onSelect }: { item: PanelNavigationItem; activeId: string | null; onSelect: (id: string) => void }) {
+  const { t } = useTranslation();
   const active = item.id === activeId;
   const Icon = item.icon;
   return (
@@ -425,7 +518,7 @@ function ModuleLink({ item, activeId, onSelect }: { item: PanelNavigationItem; a
       }`}
     >
       <Icon size={18} weight={active ? "fill" : "regular"} aria-hidden="true" />
-      {item.label}
+      {t(item.label)}
     </button>
   );
 }

@@ -47,6 +47,11 @@ export function registerModule(module: PanelModule) {
   modules.set(module.id, module);
   snapshot = [...modules.values()].sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER));
   listeners.forEach((listener) => listener());
+  return () => {
+    modules.delete(module.id);
+    snapshot = [...modules.values()].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+    listeners.forEach((listener) => listener());
+  };
 }
 
 export function getPanelModules() {

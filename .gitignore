@@ -27,3 +27,5 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+
+/web/dist-plugins-preview/

@@ -1,0 +1,7 @@
+{
+  "provider": "tuya",
+  "name": "Home",
+  "access_id": "example-access-id",
+  "secret": "example-secret-not-real",
+  "uid": "example-user-id"
+}

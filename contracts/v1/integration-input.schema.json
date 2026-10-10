@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "provider": {
+      "const": "tuya",
+      "default": "tuya",
+      "enum": [
+        "tuya"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "region": {
+      "default": "auto",
+      "enum": [
+        "auto",
+        "eu",
+        "us",
+        "cn",
+        "in",
+        "eu_west",
+        "us_east"
+      ],
+      "title": "Region",
+      "type": "string"
+    },
+    "access_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Access Id",
+      "type": "string"
+    },
+    "secret": {
+      "format": "password",
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Secret",
+      "type": "string",
+      "writeOnly": true
+    },
+    "uid": {
+      "maxLength": 128,
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "title": "Uid",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "access_id",
+    "secret",
+    "uid"
+  ],
+  "title": "IntegrationInput",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

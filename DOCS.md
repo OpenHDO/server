@@ -1,205 +1,71 @@
-# OpenHDO Server — technical documentation
+# Runtime and development
 
-This document is limited to the server repository. Product-wide architecture,
-repository ownership, naming, deployment roles, and roadmap live in the
-[OpenHDO about repository](https://github.com/OpenHDO/about).
+Python 3.11+ / FastAPI, React / TypeScript. See README.md and docs/tuya.md.
+Yandex account setup and secret placement: [docs/yandex.md](docs/yandex.md).
+ADR-0002 supersedes the Linker hardware path.
 
-## Responsibility
+integrations.py owns SQLite inventory, lifecycle, metadata, sync and validation.
+tuya_account.py authorizes accounts and uses Tuya's sharing SDK for devices and
+commands. tuya.py retains developer-key compatibility and shared device normalization. lights.py adapts
+lamps to Light v1. app.py owns auth, CSRF, events and panel hosting.
+web/src/builtins/devices.tsx is the core Devices screen.
+Yandex is provided by the optional `openhdo.yandex` plugin, not the server.
+Its private OAuth application settings and account tokens belong to
+`data/plugin-data/openhdo.yandex/state.sqlite3`. No shared credentials ship.
+Plugin lifecycle and packaging: [docs/plugins.md](docs/plugins.md).
 
-`openhdo-server` is the central control plane. It owns:
+## Configuration
 
-- canonical abstract domain state and orchestration rules;
-- commands, events, policies, and execution outcomes;
-- registries of devices, capabilities, and Linker sessions;
-- the versioned HTTP API and WebSocket paths;
-- the configuration/authentication boundary and structured logs;
-- persistence seams for a later durable repository;
-- the built-in server admin/configuration panel host.
+- OPENHDO_CONFIG_VERSION (1), OPENHDO_INSTANCE_NAME, OPENHDO_HOST (127.0.0.1),
+  OPENHDO_PORT (8000), OPENHDO_LOG_LEVEL.
+- OPENHDO_API_TOKEN: bearer token, required for non-local binds.
+- OPENHDO_ADMIN_USERNAME / OPENHDO_ADMIN_PASSWORD: initial admin, set together.
+- OPENHDO_AUTH_DB: auth database path; passwords are hashed.
+- OPENHDO_DATA_DIR: integration data directory (default server/data).
+- OPENHDO_CORS_ORIGINS: exact comma-separated origins; wildcard is rejected.
+  Configured event sockets require an allowed Origin. GET/POST/PUT/PATCH/DELETE
+  are allowed; cookie mutations require X-OpenHDO-CSRF.
 
-The server must not contain radio, USB, serial, vendor/model, device protocol,
-DP mapping, credential, physical pairing, or real-device connection logic. It
-may coordinate a bounded pairing session, but the isolated `openhdo-linker`
-process performs the real operation close to the hardware. A Linker
-registration contributes only the vendor-neutral manifest and Light capability
-defined by `contracts/v1/`.
+Auth lives in data/openhdo-auth.sqlite3; credentials/inventory in
+ data/devices/integrations.sqlite3. Failed reads never replace valid inventory.
+Metadata survives sync/restart. Removing an integration removes local data,
+not physical devices. Protect credential-bearing storage/backups.
+Yandex caches the `user/info` inventory for five minutes and queries each device's
+current state every 15 seconds, with at most two requests in parallel. Confirmed
+`offline` is applied immediately. Failed state requests set `state_stale=true`:
+last known values remain stored, but the UI shows unknown power instead of on/off.
+Previously available devices retain command access for at most 60 seconds after
+a successful read; repeated failures back off per device to 120 seconds.
+HTTP 429 observes Retry-After (15–300 seconds, default 60) per account; commands
+are never automatically retried. Revoked authorization is not hidden by caches.
+The official Yandex user API does not expose a device-event subscription;
+its notifications API accepts provider-to-Yandex reports, not incoming events.
 
-The reusable `server-dashboard` module is a client-facing consumer of server
-contracts. It is not the server's admin/configuration panel and is not owned by
-this repository.
+Each integration has an independent worker. Tuya polls every five seconds;
+whole-integration failures back off to 60 seconds and retain inventory.
+`/api/v1/events?devices=1` adds authenticated `devices.updated` envelopes with
+full device inventory, integrations and rooms. It emits `devices.heartbeat`
+every 20 seconds. The panel uses events as its primary channel, reconnects,
+and only falls back to ten-second local HTTP reads when no event has arrived
+for 45 seconds or the socket has disconnected. These HTTP reads do not poll
+providers. Commands and external changes cannot be overwritten by older reads.
+Tuya account specifications are cached for ten minutes; device state is always
+read afresh. Cloud propagation can add delay to external changes.
+Old registries and published schemas remain for recovery/compatibility, but
+legacy runtime paths and linkerct are removed.
 
-## Runtime direction
+## Verify
 
-Python is the only active server runtime/executable target. The implementation
-is in `python/openhdo_server/` and uses FastAPI/Starlette, uvicorn, and typed
-Pydantic models. React owns the panel source in `web/`; a production build is
-served at `/admin` when `web/dist/` is present.
-
-## Repository layout
-
-```text
-contracts/v1/        language-neutral envelope, Linker, and Light contracts
-python/openhdo_server active Python runtime, models, repository, and service
-python/tests/         runtime and contract-focused tests
-web/                  server-owned React admin/configuration panel source
-docs/adr/             architectural decisions
-```
-
-The server owns the source of truth. The built-in admin panel, reusable client
-dashboards, Linkers, agents, and plugins use the public contracts; none may
-treat panel state or storage tables as an API. The Python runtime starts with a
-process-local repository and does not seed fake lights. A Light exists only
-after a Linker sends `link.register` with its abstract capability.
-
-## Public v1 boundary
-
-The common envelope is defined in
-[`contracts/v1/envelope.schema.json`](contracts/v1/envelope.schema.json).
-Linker registration uses
-[`contracts/v1/link-manifest.schema.json`](contracts/v1/link-manifest.schema.json)
-and the `link.register` example. The RGB Light slice uses
-[`contracts/v1/light-command.schema.json`](contracts/v1/light-command.schema.json),
-[`contracts/v1/light-state.schema.json`](contracts/v1/light-state.schema.json),
-and [`contracts/v1/light.schema.json`](contracts/v1/light.schema.json).
-
-Light brightness and RGB channels are OpenHDO-defined integers in the inclusive
-range `0..255`. Capabilities may advertise `RGB`, `RGBW`, or `CCT` where
-applicable; no vendor/model/local-key fields are valid server capability data.
-
-The active runtime exposes these transport adapters over the same v1 model:
-
-- `GET /api/v1/health` is the unauthenticated liveness response;
-- `POST /api/v1/admin/linkers` registers a Linker endpoint for the admin panel;
-- `PATCH /api/v1/admin/linkers/{id}` renames a registered Linker and `DELETE
-  /api/v1/admin/linkers/{id}` removes it and its canonical devices;
-- `GET /api/v1/linkers` reads registered Linker manifests, live connection
-  availability, and their canonical Light devices;
-- `GET /api/v1/lights` and `GET /api/v1/lights/{id}` read canonical state;
-- `POST /api/v1/lights/{id}/commands` accepts a complete typed command
-  envelope;
-- `POST /api/v1/discovery/sessions` starts an authenticated bounded discovery
-  session and `GET /api/v1/discovery/sessions/{session_id}` reads its current
-  process-local state;
-- `POST /api/v1/pairing/sessions` starts pairing for a candidate from a completed
-  discovery session and `GET /api/v1/pairing/sessions/{session_id}` reads its
-  current process-local state;
-- `PATCH /api/v1/lights/{id}` adapts one `power`, `brightness`, or `rgb_color`
-  change plus an idempotency key into that same typed command path;
-- `WS /api/v1/linker` is opened by the server for a configured Linker and
-  accepts the same v1 envelopes;
-- `WS /api/v1/linkers/{linker_id}` remains the legacy Linker-initiated path;
-- `WS /api/v1/events` publishes canonical `light.updated` event envelopes.
-
-The admin must add the Linker endpoint before the server connects. The Linker
-must verify the `X-OpenHDO-Secret` header and send `link.register` first;
-its `source` and manifest ID must match.
-
-The Linker WS is a message endpoint, not a device protocol adapter. The server
-validates the v1 envelope, checks that the message source matches the connected
-Linker identity, and updates only the abstract Light registry. Commands are
-forwarded only to a currently connected Linker. A successful HTTP response
-with status `202` means `accepted` for forwarding; it is not a claim that the
-physical device applied the command. The later Linker `command.result` uses
-the forwarded `light.command` envelope `id` as its `correlation_id`. Applied
-results carrying state produce `light.updated` with the same correlation ID.
-
-The process-local event observer is intentionally transient and bounded. It
-does not promise durable delivery; persistence, replay, retry, and a dead-letter
-channel belong behind an explicit future reliability requirement.
-
-Discovery follows the same command/request-reply/correlation/observer boundary:
-the server creates a UUID session, forwards `discovery.start` over the
-connected Linker socket with `correlation_id` equal to the start envelope `id`,
-and accepts only source-matching `discovery.candidate` and
-`discovery.completed` messages for that session. The session is marked failed
-on unavailable transport, an active Linker disconnect, a Linker-reported
-failure, or timeout after 1..60 seconds. Candidates are never synthesized; a
-successful scan may have an empty candidate list. The candidate contract is
-intentionally limited to abstract Light capability data, Wi-Fi transport, and
-the honest
-`requires_pairing` flag. Pairing is started separately and only a successful
-Linker result registers the candidate as a canonical Light.
-
-Compatibility rules:
-
-1. Reject unsupported protocol major versions before processing payloads.
-2. Keep message names stable and use the envelope `id` as the correlation
-   target for its reply/result.
-3. Ignore unknown optional fields at a compatible external boundary; breaking
-   required changes require a new major contract.
-4. Add a schema or payload definition, example, and compatibility test before
-   making a message public.
-5. Keep authorization, validation, logging, and test seams at every runtime
-   boundary.
-
-The schema defines logical messages, not a remote deployment transport. Any
-future remote transport must provide encryption, authentication, size limits,
-timeouts, reconnect behavior, and an explicit delivery policy.
-
-## Module boundaries
-
-- `python/openhdo_server` owns configuration, authorization, canonical Light
-  state/capability, command service, repository, and transport adapters.
-- `web/` is the server-owned admin/configuration panel and is served only from
-  this server's optional `web/dist/` build under `/admin`.
-- `server-linker` owns Linker sessions and all vendor/model/pairing/protocol/
-  DP/real-device work.
-- `server-logic` may contribute validated flows, nodes, conditions, and
-  actions through a later server-side seam.
-- `server-dashboard` remains a reusable client dashboard and is not imported,
-  copied, or hosted as the server admin panel.
-
-## Configuration and authorization
-
-Configuration is versioned (`OPENHDO_CONFIG_VERSION=1`) and loaded through the
-typed `ServerSettings` boundary. Defaults bind to `127.0.0.1:8000`; a
-non-local bind is rejected unless `OPENHDO_API_TOKEN` is set. Browser sessions
-are backed by the server-owned SQLite auth store (`OPENHDO_AUTH_DB`, default
-`data/openhdo-auth.sqlite3`). Set `OPENHDO_ADMIN_USERNAME` and
-`OPENHDO_ADMIN_PASSWORD` together on first startup to bootstrap the initial
-admin. Public registration creates user accounts. Passwords are stored as
-scrypt hashes; sessions are revocable and are
-sent to the browser in an HttpOnly, SameSite cookie with a separate CSRF
-cookie/header check for state-changing requests.
-The static `/admin` shell remains readable without credentials and exposes the
-mini-profile guest state. Shared login and registration are served from the
-minimal `/auth` page. Native Linker and backward-compatible service clients may
-continue using a bearer token when `OPENHDO_API_TOKEN` is configured.
-For a standalone React client on a separate origin,
-`OPENHDO_CORS_ORIGINS` accepts a comma-separated allowlist of exact `http` or
-`https` origins. CORS middleware is installed only when this list is non-empty,
-with `allow_credentials=False`, methods limited to `GET`, `PATCH`, and `POST`,
-and headers limited to `Authorization`, `Content-Type`, `Accept`, and
-`X-OpenHDO-Source`; wildcard origins are rejected. For `/api/v1/events`, a
-configured allowlist requires a present, allowed WebSocket `Origin`; missing
-or disallowed origins close with code `4403`. For
-`/api/v1/linkers/{id}`, a missing Origin is permitted for native Python
-Linkers, while a present Origin must be allowed and otherwise closes with
-`4403`. If unset, existing local WebSocket behavior is preserved. This origin
-check does not replace bearer authorization.
-Startup, shutdown, registration, forwarding, state, and result paths emit
-structured JSON log events without logging credentials or vendor data.
-
-## Development checks
-
-```bash
+```powershell
 cd python
 python -m pip install -e ".[dev]"
 python -m unittest discover -s tests -v
 python -m compileall -q openhdo_server
-openhdo-server --check
-```
-
-The optional panel build is:
-
-```bash
-cd web
+python -m openhdo_server --check
+cd ../web
 npm ci
 npm run build
 ```
 
-After the build, run the server and open `/admin`. Without `web/dist/index.html`,
-the server returns a clear `admin_panel_unavailable` 404 instead of serving
-placeholder data.
-
-See [`docs/adr/0001-phase-one-control-plane.md`](docs/adr/0001-phase-one-control-plane.md)
-for the Phase 1 boundary choices.
+Checks use mocked HTTP. For real verification connect Tuya in Devices, change
+power and compare refreshed state with the app. Acceptance is not confirmation.

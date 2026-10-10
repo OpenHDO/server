@@ -27,6 +27,64 @@ body {
   background: #0a0a0a;
 }
 
-button {
-  font: inherit;
+.device-slider {
+  display: block;
+  margin: 0;
+  appearance: none;
+  background: transparent;
+  height: 30px;
+  cursor: pointer;
+}
+
+.device-slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #303030;
+}
+
+.device-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.device-slider::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #303030;
+}
+
+.device-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-accent);
+}
+
+.device-slider:disabled {
+  cursor: default;
+  opacity: .4;
+}
+
+.device-card-list {
+  column-count: 1;
+  column-gap: .5rem;
+}
+
+.device-card-list > article {
+  break-inside: avoid;
+  margin-bottom: .5rem;
+}
+
+@media (min-width: 40rem) {
+  .device-card-list { column-count: 2; column-gap: .75rem; }
+  .device-card-list > article { margin-bottom: .75rem; }
+}
+
+@media (min-width: 80rem) {
+  .device-card-list { column-count: 3; }
 }

@@ -1,5 +1,25 @@
 # OpenHDO protocol contracts v1
 
+The current runtime imports devices through built-in Tuya integrations. New HTTP
+contracts are `integration-input`, `integrations`, `devices`, `device-action` and
+`device-update`, `room-input` and `rooms` schemas, with corresponding examples. Management is admin-only;
+device reads/actions use authenticated user access. Access Secret is input-only.
+New account sign-in uses `tuya-login-input`, `tuya-login` and `tuya-login-result`.
+POST `/api/v1/integrations/tuya/login` starts a temporary, admin-owned QR attempt;
+POST `/api/v1/integrations/tuya/login/{id}` checks confirmation and connects the
+account; DELETE the attempt to cancel. Repeated successful checks return the same
+integration. Tokens and User Code stay private. `auth_method` distinguishes account
+sign-in from existing developer-key connections; `integration-input` is kept for
+older clients. Reconnecting the same account preserves IDs and room assignments.
+Rooms use GET/POST `/api/v1/rooms` and PUT/DELETE `/api/v1/rooms/{id}`. Room input
+includes the complete device membership; changes validate all IDs before writing.
+Devices expose nullable `room_id`; `area` remains the room display name for older
+clients. PATCH with `room_id: null` unassigns a device.
+
+Light v1 remains for supported lamps; its legacy `linker_id` identifies the built-in
+integration. Historical Linker, discovery and pairing schemas below remain for SDK
+DTO compatibility. Their runtime endpoints and standalone processes are retired.
+
 This directory contains the language-neutral contracts shared by the server,
 OpenHDO Linker processes, agents, plugins, and clients.
 
